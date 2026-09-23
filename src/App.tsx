@@ -95,7 +95,10 @@ export default function App() {
       const stored = localStorage.getItem(JOB_DESCRIPTIONS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        const hasDbDept = Array.isArray(parsed) && parsed.some((j: JobDescription) => j.department?.includes('ዳታቤዝ'));
+        if (Array.isArray(parsed) && parsed.length >= 6 && hasDbDept) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error(e);
@@ -331,6 +334,70 @@ export default function App() {
     setCurrentModule('monthly');
   };
 
+  const handleSelectJDToAppraisal = (jd: JobDescription) => {
+    const newId = `appraisal-${Date.now()}`;
+    const newRecord: AppraisalRecord = {
+      id: newId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      metadata: {
+        ...DEFAULT_METADATA,
+        empName: '',
+        empId: `ICS-IT-${Math.floor(1000 + Math.random() * 9000)}`,
+        empDept: jd.department.split(' ')[0],
+        empPosition: jd.title,
+        evalPeriod: 'ከ ጥር 1/2018 እስከ ሰኔ 30/2018 ዓ.ም',
+        supervisorName: jd.reportsTo,
+        evalDate: new Date().toISOString().split('T')[0],
+        evalType: 'half-year'
+      },
+      categories: jd.duties.map((duty, idx) => {
+        const catWeight = Math.round((duty.weightPercentage / 100) * 60);
+        const qualityWeight = Math.max(1, Math.round(catWeight * 0.6));
+        const timeWeight = Math.max(1, catWeight - qualityWeight);
+
+        return {
+          id: idx + 1,
+          title: duty.title,
+          weight: catWeight,
+          subtasks: [
+            {
+              subId: `${idx + 1}.1`,
+              desc: duty.description,
+              criteria: [
+                {
+                  id: `${idx + 1}.1-q`,
+                  type: 'ጥራት',
+                  weight: qualityWeight,
+                  rating: 4
+                },
+                {
+                  id: `${idx + 1}.1-t`,
+                  type: 'ጊዜ',
+                  weight: timeWeight,
+                  rating: 4
+                }
+              ]
+            }
+          ]
+        };
+      }),
+      competencies: JSON.parse(JSON.stringify(DEFAULT_COMPETENCIES)),
+      supervisorComments: '',
+      employeeComments: '',
+      supervisorSigned: false,
+      employeeSigned: false,
+      supervisorSignDate: '',
+      employeeSignDate: '',
+      approvalStatus: 'draft'
+    };
+
+    setSavedRecords((prev) => [newRecord, ...prev]);
+    setCurrentRecord(newRecord);
+    setCurrentModule('appraisal');
+    setActiveTab(1);
+  };
+
   const handleDuplicateRecord = (rec: AppraisalRecord) => {
     const dupId = `appraisal-${Date.now()}`;
     const dup: AppraisalRecord = {
@@ -379,6 +446,7 @@ export default function App() {
         onReset={handleReset}
         savedCount={savedRecords.length}
         employeesCount={employees.length}
+        jobsCount={jobDescriptions.length}
         activeRecord={currentRecord}
         totalScore={totalScore}
       />
@@ -439,6 +507,7 @@ export default function App() {
         {currentModule === 'jobs' && (
           <JobDescriptionView
             jobDescriptions={jobDescriptions}
+            onSelectJDToAppraisal={handleSelectJDToAppraisal}
             lang={lang}
           />
         )}

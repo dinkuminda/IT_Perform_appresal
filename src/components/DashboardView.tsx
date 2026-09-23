@@ -17,7 +17,10 @@ import {
   CalendarDays,
   FileSpreadsheet,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Database,
+  Server,
+  Network
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -94,22 +97,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <div className="flex flex-wrap items-center gap-3">
           <button
+            onClick={() => onNavigateToTab('jobs')}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition shadow-xs cursor-pointer"
+          >
+            <Briefcase className="w-4 h-4 text-amber-600" />
+            <span>{lang === 'am' ? 'የሥራ መደቦች (JD)' : 'Job Descriptions'}</span>
+          </button>
+          <button
             onClick={() => onNavigateToTab('employees')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Users className="w-4 h-4 text-blue-600" />
             <span>{lang === 'am' ? 'የሰራተኞች ማውጫ' : 'Staff Directory'}</span>
           </button>
           <button
             onClick={() => onNavigateToTab('monthly')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm cursor-pointer"
           >
             <CalendarDays className="w-4 h-4 text-blue-400" />
             <span>{lang === 'am' ? 'ወርሃዊ ሪፖርት መዝግብ' : 'Monthly Report'}</span>
           </button>
           <button
             onClick={() => onNavigateToTab('appraisal')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>{lang === 'am' ? 'ወደ ምዘና ቅጽ ሂድ' : 'Appraisal Sheet'}</span>
@@ -483,6 +493,111 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Departmental Job Roles & Standards Overview */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-blue-600" />
+              <span>{lang === 'am' ? 'የዳይሬክቶሬቱ የስራ ክፍሎች ይፋዊ የሥራ መደቦች (Job Descriptions)' : 'Directorate Departmental Job Profiles'}</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {lang === 'am'
+                ? 'በዳታቤዝ አስተዳደር፣ በሲስተም አስተዳደር እና በኔትዎርክ አስተዳደር የስራ ክፍሎች የተዘጋጁ ይፋዊ መደቦችና የክብደት ድርሻዎች'
+                : 'Standardized job roles, core duties, and weight distributions for Database, Systems, and Network departments.'}
+            </p>
+          </div>
+
+          <button
+            onClick={() => onNavigateToTab('jobs')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition self-start sm:self-auto cursor-pointer"
+          >
+            <span>{lang === 'am' ? 'ሁሉንም መደቦች ተመልከት' : 'View All Job Descriptions'}</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Department 1: Database Admin */}
+          <div
+            onClick={() => onNavigateToTab('jobs')}
+            className="p-4 rounded-xl border border-cyan-200 bg-cyan-50/40 hover:bg-cyan-50 transition cursor-pointer space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-cyan-600 text-white">
+                  <Database className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-900">
+                  {lang === 'am' ? 'የዳታቤዝ አስተዳደር' : 'Database Administration'}
+                </h4>
+              </div>
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-100 text-cyan-800">
+                {jobDescriptions.filter((j) => j.department.includes('ዳታቤዝ')).length} መደቦች
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 line-clamp-2">
+              Oracle RAC, PostgreSQL Patroni, High Availability, RMAN/Disaster Recovery, እና Query Optimization።
+            </p>
+            <div className="text-[10px] text-cyan-800 font-semibold flex items-center gap-1">
+              <span>ከፍተኛ የዳታቤዝ አስተዳዳሪ XIII • የዳታቤዝ ባለሙያ XII</span>
+            </div>
+          </div>
+
+          {/* Department 2: Systems Admin */}
+          <div
+            onClick={() => onNavigateToTab('jobs')}
+            className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50 transition cursor-pointer space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-indigo-600 text-white">
+                  <Server className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-900">
+                  {lang === 'am' ? 'የሲስተም አስተዳደር' : 'Systems Administration'}
+                </h4>
+              </div>
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">
+                {jobDescriptions.filter((j) => j.department.includes('ሲስተም')).length} መደቦች
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 line-clamp-2">
+              VMware vSphere/vCenter, Enterprise SAN Storage, Linux/Windows Active Directory, እና Veeam Backup።
+            </p>
+            <div className="text-[10px] text-indigo-800 font-semibold flex items-center gap-1">
+              <span>ከፍተኛ የሲስተም አስተዳዳሪ XIII • የሲስተም ባለሙያ XII</span>
+            </div>
+          </div>
+
+          {/* Department 3: Network Admin */}
+          <div
+            onClick={() => onNavigateToTab('jobs')}
+            className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 hover:bg-emerald-50 transition cursor-pointer space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-emerald-600 text-white">
+                  <Network className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-900">
+                  {lang === 'am' ? 'የኔትዎርክ አስተዳደር' : 'Network Administration'}
+                </h4>
+              </div>
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                {jobDescriptions.filter((j) => j.department.includes('ኔትዎርክ') || j.department.includes('ኔትወርክ')).length} መደቦች
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 line-clamp-2">
+              Cisco Nexus/Catalyst Core, WAN/SD-WAN, FortiGate Next-Gen Firewalls, IPsec/SSL VPN, እና QoS።
+            </p>
+            <div className="text-[10px] text-emerald-800 font-semibold flex items-center gap-1">
+              <span>ከፍተኛ የኔትወርክ አስተዳዳሪ XIII • የኔትወርክ ባለሙያ XII</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

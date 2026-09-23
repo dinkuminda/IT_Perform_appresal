@@ -32,6 +32,7 @@ interface SidebarProps {
   onReset: () => void;
   savedCount: number;
   employeesCount?: number;
+  jobsCount?: number;
   activeRecord: AppraisalRecord;
   totalScore: number;
 }
@@ -48,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onReset,
   savedCount,
   employeesCount = 6,
+  jobsCount = 7,
   activeRecord,
   totalScore
 }) => {
@@ -88,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelAm: 'የሥራ መደቦች መግለጫ (JD)',
       labelEn: 'Job Descriptions & KPIs',
       icon: Briefcase,
-      badge: '3 መደቦች'
+      badge: `${jobsCount} መደቦች`
     }
   ];
 
