@@ -1,0 +1,6 @@
+{
+  "name": "የሥራ አፈጻጸም ምዘና ስርዓት - Performance Appraisal System",
+  "description": "የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት የሥራ አፈጻጸም እና የባህሪ ምዘና ስርዓት - Official civil service performance and core competencies appraisal system with live score calculation, printable reports, and record management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
