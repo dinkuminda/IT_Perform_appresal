@@ -4,6 +4,7 @@ import { AppraisalRecord } from '../types/appraisal';
 import { MonthlyReport } from '../types/monthlyReport';
 import { JobDescription } from '../types/jobDescription';
 import { Language } from '../utils/i18n';
+import { OFFICIAL_STAFF_POSITIONS } from '../data/officialStaffPositions';
 import { 
   Users, 
   Search, 
@@ -511,6 +512,13 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
+                    <button
+                      onClick={() => onDeleteEmployee(emp.id)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                      title={lang === 'am' ? 'ሰርዝ' : 'Delete'}
+                    >
+                      <Trash2 className="w-4 h-4 text-rose-500" />
+                    </button>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -599,6 +607,13 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                           title="አሻሽል"
                         >
                           <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteEmployee(emp.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          title={lang === 'am' ? 'ሰርዝ' : 'Delete'}
+                        >
+                          <Trash2 className="w-4 h-4 text-rose-500" />
                         </button>
                         <button
                           onClick={() => onStartAppraisalForEmployee(emp)}
@@ -706,6 +721,65 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                   />
                 </div>
 
+                {/* Quick Official Role & Grade Selector */}
+                <div className="col-span-1 md:col-span-2 bg-blue-50/50 p-2.5 rounded-xl border border-blue-100">
+                  <label className="block text-xs font-bold text-blue-900 mb-1 flex items-center justify-between">
+                    <span>ይፋዊ የስራ መደብና ደረጃ ይምረጡ (Select Official Position & Grade)</span>
+                    <span className="text-[10px] font-normal text-blue-600 bg-white px-2 py-0.5 rounded border border-blue-200">12 ይፋዊ የሙያ መደቦች</span>
+                  </label>
+                  <select
+                    value={
+                      OFFICIAL_STAFF_POSITIONS.some((p) => p.titleAm === formData.positionAm)
+                        ? formData.positionAm
+                        : ''
+                    }
+                    onChange={(e) => {
+                      const sel = e.target.value;
+                      if (!sel) return;
+                      const found = OFFICIAL_STAFF_POSITIONS.find((p) => p.titleAm === sel);
+                      if (found) {
+                        const gradeToLevel: Record<string, string> = {
+                          'ደረጃ XIII': 'ደረጃ XIII (Grade XIII)',
+                          'ደረጃ XII': 'ደረጃ XII (Grade XII)',
+                          'ደረጃ XI': 'ደረጃ XI (Grade XI)',
+                          'ደረጃ X': 'ደረጃ X (Grade X)'
+                        };
+                        setFormData({
+                          ...formData,
+                          positionAm: found.titleAm,
+                          positionEn: found.titleEn,
+                          jobLevel: gradeToLevel[found.grade] || found.grade,
+                          teamAm: found.category === 'network' ? 'የኔትወርክ አስተዳደር የስራ ክፍል' :
+                                  found.category === 'database' ? 'የዳታቤዝ አስተዳደር የስራ ክፍል' :
+                                  'የሲስተም አስተዳደር የስራ ክፍል',
+                          linkedJobId: found.id
+                        });
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 text-xs font-semibold border border-blue-200 bg-white text-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  >
+                    <option value="">-- ይፋዊ የስራ መደብና ደረጃ ይምረጡ (አውቶማቲክ ሙሌት) --</option>
+                    <optgroup label="🌐 የኔትዎርክ አስተዳደር (Network Administration)">
+                      <option value="ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII">ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII</option>
+                      <option value="መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII">መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII</option>
+                      <option value="ረዳት የኔትወርክ ባለሙያ ደረጃ XI">ረዳት የኔትወርክ ባለሙያ ደረጃ XI</option>
+                      <option value="ጀማሪ የኔትወርክ ባለሙያ ደረጃ X">ጀማሪ የኔትወርክ ባለሙያ ደረጃ X</option>
+                    </optgroup>
+                    <optgroup label="💾 የዳታቤዝ አስተዳደር (Database Administration)">
+                      <option value="ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII">ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII</option>
+                      <option value="መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII">መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII</option>
+                      <option value="ረዳት የዳታቤዝ ባለሙያ ደረጃ XI">ረዳት የዳታቤዝ ባለሙያ ደረጃ XI</option>
+                      <option value="ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X">ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X</option>
+                    </optgroup>
+                    <optgroup label="🖥️ የሲስተም አስተዳደር (System Administration)">
+                      <option value="ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII">ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII</option>
+                      <option value="መካከለኛ የሲስተም ባለሙያ ደረጃ XII">መካከለኛ የሲስተም ባለሙያ ደረጃ XII</option>
+                      <option value="ረዳት የሲስተም ባለሙያ ደረጃ XI">ረዳት የሲስተም ባለሙያ ደረጃ XI</option>
+                      <option value="ጀማሪ የሲስተም ባለሙያ ደረጃ X">ጀማሪ የሲስተም ባለሙያ ደረጃ X</option>
+                    </optgroup>
+                  </select>
+                </div>
+
                 {/* Position Amharic */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -716,7 +790,7 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                     required
                     value={formData.positionAm}
                     onChange={(e) => setFormData({ ...formData, positionAm: e.target.value })}
-                    placeholder="ምሳሌ፦ ከፍተኛ የኔትወርክ ባለሙያ"
+                    placeholder="ምሳሌ፦ ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII"
                     className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -955,8 +1029,19 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
 
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => {
+                    onDeleteEmployee(viewingEmployee.id);
+                    setViewingEmployee(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 transition cursor-pointer"
+                  title={lang === 'am' ? 'ሰርዝ' : 'Delete'}
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <span>{lang === 'am' ? 'ሰርዝ' : 'Delete'}</span>
+                </button>
+                <button
                   onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>አትም</span>

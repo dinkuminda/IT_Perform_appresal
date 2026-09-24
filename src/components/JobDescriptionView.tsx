@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { JobDescription } from '../types/jobDescription';
 import { Language } from '../utils/i18n';
+import { JobDescriptionModal } from './JobDescriptionModal';
 import { 
   Briefcase, 
   Search, 
@@ -10,32 +11,45 @@ import {
   CheckCircle, 
   Layers, 
   Printer, 
-  FileText,
-  ChevronRight,
-  ExternalLink,
+  FileSpreadsheet,
   Database,
   Server,
   Network,
   ShieldAlert,
   Building2,
-  FileSpreadsheet,
-  Filter
+  Plus,
+  Edit3,
+  Trash2,
+  Table as TableIcon,
+  Sparkles,
+  Info
 } from 'lucide-react';
 
 interface JobDescriptionViewProps {
   jobDescriptions: JobDescription[];
   onSelectJDToAppraisal?: (jd: JobDescription) => void;
+  onAddJobDescription?: (jd: JobDescription) => void;
+  onUpdateJobDescription?: (jd: JobDescription) => void;
+  onDeleteJobDescription?: (id: string) => void;
   lang: Language;
 }
 
 export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
   jobDescriptions,
   onSelectJDToAppraisal,
+  onAddJobDescription,
+  onUpdateJobDescription,
+  onDeleteJobDescription,
   lang
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [selectedJdId, setSelectedJdId] = useState<string>(jobDescriptions[0]?.id || '');
+  const [detailTab, setDetailTab] = useState<'evaluationTable' | 'specifications'>('evaluationTable');
+  
+  // Modal state for adding/editing
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingJd, setEditingJd] = useState<JobDescription | null>(null);
 
   // Department metadata helper
   const getDeptMeta = (deptName: string) => {
@@ -67,8 +81,8 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
       };
     }
     return {
-      labelAm: 'የኢንፎርሜሽን ደህንነት',
-      labelEn: 'Information Security',
+      labelAm: 'የኢንፎርሜሽን ቴክኖሎጂ',
+      labelEn: 'Information Technology',
       icon: ShieldAlert,
       color: 'text-purple-700 bg-purple-50 border-purple-200',
       badgeBg: 'bg-purple-100 text-purple-900 border-purple-200'
@@ -77,13 +91,19 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
 
   // Distinct department names
   const departmentsList = useMemo(() => {
-    const map = new Map<string, number>();
+    const list: string[] = [];
     jobDescriptions.forEach((jd) => {
-      const current = map.get(jd.department) || 0;
-      map.set(jd.department, current + 1);
+      if (!list.includes(jd.department)) {
+        list.push(jd.department);
+      }
     });
-    return Array.from(map.entries());
+    return list;
   }, [jobDescriptions]);
+
+  // Counts
+  const dbCount = jobDescriptions.filter((j) => j.department.includes('ዳታቤዝ') || j.department.toLowerCase().includes('database')).length;
+  const sysCount = jobDescriptions.filter((j) => j.department.includes('ሲስተም') || j.department.toLowerCase().includes('system')).length;
+  const netCount = jobDescriptions.filter((j) => j.department.includes('ኔትዎርክ') || j.department.includes('ኔትወርክ') || j.department.toLowerCase().includes('network')).length;
 
   // Filtered Job Descriptions
   const filteredJds = useMemo(() => {
@@ -94,13 +114,18 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
         jd.level.toLowerCase().includes(searchTerm.toLowerCase()) ||
         jd.department.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesDept = selectedDept === 'all' || jd.department === selectedDept;
+      const matchesDept = 
+        selectedDept === 'all' || 
+        jd.department === selectedDept ||
+        (selectedDept === 'database' && (jd.department.includes('ዳታቤዝ') || jd.department.toLowerCase().includes('database'))) ||
+        (selectedDept === 'system' && (jd.department.includes('ሲስተም') || jd.department.toLowerCase().includes('system'))) ||
+        (selectedDept === 'network' && (jd.department.includes('ኔትዎርክ') || jd.department.includes('ኔትወርክ') || jd.department.toLowerCase().includes('network')));
 
       return matchesSearch && matchesDept;
     });
   }, [jobDescriptions, searchTerm, selectedDept]);
 
-  // Selected JD
+  // Selected active JD
   const activeJd = useMemo(() => {
     const found = filteredJds.find((j) => j.id === selectedJdId);
     if (found) return found;
@@ -110,6 +135,34 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
   const activeDeptMeta = activeJd ? getDeptMeta(activeJd.department) : null;
   const ActiveDeptIcon = activeDeptMeta ? activeDeptMeta.icon : Building2;
 
+  // Handlers for modal
+  const handleOpenAddModal = () => {
+    setEditingJd(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (jd: JobDescription) => {
+    setEditingJd(jd);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveJd = (saved: JobDescription) => {
+    if (editingJd && onUpdateJobDescription) {
+      onUpdateJobDescription(saved);
+    } else if (onAddJobDescription) {
+      onAddJobDescription(saved);
+    }
+    setSelectedJdId(saved.id);
+  };
+
+  const handleDeleteJd = (jd: JobDescription) => {
+    if (window.confirm(lang === 'am' ? `"${jd.title}" የስራ መደብ መግለጫ ይሰረዝ?` : `Delete job description "${jd.title}"?`)) {
+      if (onDeleteJobDescription) {
+        onDeleteJobDescription(jd.id);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner & Institutional Header */}
@@ -117,208 +170,179 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-50 text-blue-800 text-xs font-semibold mb-2">
             <Briefcase className="w-3.5 h-3.5" />
-            <span>{lang === 'am' ? 'የሥራ መደቦችና የባለሙያዎች መስፈርት ሞጁል' : 'Job Descriptions & Competencies Module'}</span>
+            <span>{lang === 'am' ? 'የሥራ መደቦችና ይፋዊ የምዘና ሰንጠረዥ ሞጁል' : 'Job Descriptions & Official Evaluation Matrix'}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            {lang === 'am' ? 'የስራ ክፍሎች ይፋዊ የሥራ መደቦች መግለጫ (Job Descriptions)' : 'Departmental Job Descriptions & Specifications'}
+            {lang === 'am' ? 'የስራ ክፍሎች ይፋዊ የሥራ መደቦችና የምዘና መስፈርቶች (60%)' : 'Departmental Job Descriptions & 60% Evaluation Matrix'}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
             {lang === 'am'
-              ? 'ለዳታቤዝ አስተዳደር፣ ለሲስተም አስተዳደር እና ለኔትዎርክ አስተዳደር የስራ ክፍሎች የተዘጋጁ ዋና ዋና ተግባራት፣ የብቃት መስፈርቶች እና የውጤት መለኪያ አመልካቾች (KPIs)።'
-              : 'Standardized job roles, core responsibilities, qualifications, and KPIs tailored for Database, Systems, and Network Administration departments.'}
+              ? 'ለዳታቤዝ አስተዳደር፣ ለሲስተም አስተዳደር እና ለኔትዎርክ አስተዳደር የስራ ክፍሎች የተዘጋጁ ይፋዊ የውጤት ተኮር የምዘና ሰንጠረዦች (60 ነጥብ)፣ ዋና ዋና ተግባራት እና የብቃት መስፈርቶች። እንዲሁም አዲስ የስራ መደብ መመዝገብ ይችላሉ።'
+              : 'Official civil service 60% result-oriented evaluation matrices, core responsibilities, and specifications for Database, Systems, and Network Administration departments. You can also register new custom Job Descriptions.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
+          <button
+            onClick={handleOpenAddModal}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{lang === 'am' ? 'አዲስ የስራ መደብ መዝግብ' : 'Add New Job Description'}</span>
+          </button>
+
+          {activeJd && (
+            <button
+              onClick={() => handleDeleteJd(activeJd)}
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+              title={lang === 'am' ? 'የተመረጠውን የስራ መደብ ሰርዝ' : 'Delete selected Job Description'}
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>{lang === 'am' ? 'ሰርዝ' : 'Delete'}</span>
+            </button>
+          )}
+
           <button
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
           >
             <Printer className="w-4 h-4" />
-            <span>{lang === 'am' ? 'ይህንን መደብ አትም' : 'Print JD'}</span>
+            <span>{lang === 'am' ? 'አትም' : 'Print'}</span>
           </button>
         </div>
       </div>
 
-      {/* 3 Department Highlight Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* 3 Department Highlight Filter Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Dept 1: Database Administration */}
         <div
           onClick={() => {
-            const dbDept = jobDescriptions.find((j) => j.department.includes('ዳታቤዝ'))?.department;
-            if (dbDept) {
-              setSelectedDept(dbDept);
-              const firstDb = jobDescriptions.find((j) => j.department === dbDept);
-              if (firstDb) setSelectedJdId(firstDb.id);
-            }
+            setSelectedDept('database');
+            const firstDb = jobDescriptions.find((j) => j.department.includes('ዳታቤዝ') || j.department.toLowerCase().includes('database'));
+            if (firstDb) setSelectedJdId(firstDb.id);
           }}
           className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-            selectedDept.includes('ዳታቤዝ')
-              ? 'bg-cyan-50/80 border-cyan-400 ring-2 ring-cyan-500/20 shadow-xs'
+            selectedDept === 'database'
+              ? 'bg-cyan-50/90 border-cyan-500 ring-2 ring-cyan-500/20 shadow-xs'
               : 'bg-white border-slate-200 hover:border-cyan-300 hover:shadow-xs'
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-cyan-600 text-white flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-xl bg-cyan-100 text-cyan-800 flex items-center justify-center">
               <Database className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-slate-900">
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900">
                 {lang === 'am' ? 'የዳታቤዝ አስተዳደር' : 'Database Administration'}
-              </h3>
+              </h4>
               <p className="text-[11px] text-slate-500">
-                Oracle, PostgreSQL, RAC & HA
+                {dbCount} {lang === 'am' ? 'የተመዘገቡ መደቦች' : 'Positions'}
               </p>
             </div>
           </div>
-          <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800">
-            {jobDescriptions.filter((j) => j.department.includes('ዳታቤዝ')).length} መደቦች
+          <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-900">
+            60% ምዘና
           </span>
         </div>
 
         {/* Dept 2: Systems Administration */}
         <div
           onClick={() => {
-            const sysDept = jobDescriptions.find((j) => j.department.includes('ሲስተም'))?.department;
-            if (sysDept) {
-              setSelectedDept(sysDept);
-              const firstSys = jobDescriptions.find((j) => j.department === sysDept);
-              if (firstSys) setSelectedJdId(firstSys.id);
-            }
+            setSelectedDept('system');
+            const firstSys = jobDescriptions.find((j) => j.department.includes('ሲስተም') || j.department.toLowerCase().includes('system'));
+            if (firstSys) setSelectedJdId(firstSys.id);
           }}
           className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-            selectedDept.includes('ሲስተም')
-              ? 'bg-indigo-50/80 border-indigo-400 ring-2 ring-indigo-500/20 shadow-xs'
+            selectedDept === 'system'
+              ? 'bg-indigo-50/90 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs'
               : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-xs'
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-800 flex items-center justify-center">
               <Server className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-slate-900">
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900">
                 {lang === 'am' ? 'የሲስተም አስተዳደር' : 'Systems Administration'}
-              </h3>
+              </h4>
               <p className="text-[11px] text-slate-500">
-                VMware, Linux/Windows, Storage
+                {sysCount} {lang === 'am' ? 'የተመዘገቡ መደቦች' : 'Positions'}
               </p>
             </div>
           </div>
-          <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-            {jobDescriptions.filter((j) => j.department.includes('ሲስተም')).length} መደቦች
+          <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900">
+            60% ምዘና
           </span>
         </div>
 
         {/* Dept 3: Network Administration */}
         <div
           onClick={() => {
-            const netDept = jobDescriptions.find((j) => j.department.includes('ኔትዎርክ') || j.department.includes('ኔትወርክ'))?.department;
-            if (netDept) {
-              setSelectedDept(netDept);
-              const firstNet = jobDescriptions.find((j) => j.department === netDept);
-              if (firstNet) setSelectedJdId(firstNet.id);
-            }
+            setSelectedDept('network');
+            const firstNet = jobDescriptions.find((j) => j.department.includes('ኔትዎርክ') || j.department.includes('ኔትወርክ') || j.department.toLowerCase().includes('network'));
+            if (firstNet) setSelectedJdId(firstNet.id);
           }}
           className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-            selectedDept.includes('ኔትዎርክ') || selectedDept.includes('ኔትወርክ')
-              ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs'
+            selectedDept === 'network'
+              ? 'bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
               : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-xs'
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
               <Network className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-slate-900">
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900">
                 {lang === 'am' ? 'የኔትዎርክ አስተዳደር' : 'Network Administration'}
-              </h3>
+              </h4>
               <p className="text-[11px] text-slate-500">
-                Cisco, Fortinet, SD-WAN, BGP
+                {netCount} {lang === 'am' ? 'የተመዘገቡ መደቦች' : 'Positions'}
               </p>
             </div>
           </div>
-          <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-            {jobDescriptions.filter((j) => j.department.includes('ኔትዎርክ') || j.department.includes('ኔትወርክ')).length} መደቦች
+          <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900">
+            60% ምዘና
           </span>
         </div>
       </div>
 
-      {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Job Directory Selector & Department Filter (4 cols) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-4">
+      {/* Main Grid: Left Job List (4 cols) & Right Detailed Sheet (8 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Job Selector (4 cols) */}
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3 h-fit">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <span className="text-xs font-bold text-slate-700">
+              {lang === 'am' ? 'የሥራ መደቦች ዝርዝር' : 'Positions Directory'} ({filteredJds.length})
+            </span>
+            {selectedDept !== 'all' && (
+              <button
+                onClick={() => setSelectedDept('all')}
+                className="text-[11px] text-blue-600 hover:underline font-semibold cursor-pointer"
+              >
+                {lang === 'am' ? 'ሁሉንም አሳይ' : 'Show All'}
+              </button>
+            )}
+          </div>
+
           {/* Search Box */}
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={lang === 'am' ? 'በስራ መደብ ወይም ደረጃ ፈልግ...' : 'Search position or level...'}
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+              placeholder={lang === 'am' ? 'በመደብ፣ በደረጃ ወይም በስራ ክፍል ፈልግ...' : 'Search by title, level...'}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
             />
           </div>
 
-          {/* Department Filter Tabs */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between px-1 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                <Filter className="w-3 h-3" />
-                <span>{lang === 'am' ? 'የስራ ክፍል ማጣሪያ' : 'Filter Department'}</span>
-              </span>
-              {selectedDept !== 'all' && (
-                <button
-                  onClick={() => setSelectedDept('all')}
-                  className="text-[11px] text-blue-600 font-bold hover:underline"
-                >
-                  ሁሉንም አሳይ
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-1">
-              <button
-                onClick={() => setSelectedDept('all')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  selectedDept === 'all'
-                    ? 'bg-slate-900 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                ሁሉም ({jobDescriptions.length})
-              </button>
-              {departmentsList.map(([dept, count]) => {
-                const isSelected = selectedDept === dept;
-                const meta = getDeptMeta(dept);
-                return (
-                  <button
-                    key={dept}
-                    onClick={() => setSelectedDept(dept)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                      isSelected
-                        ? `${meta.badgeBg} font-bold shadow-2xs`
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span>{meta.labelAm.replace('የ', '').replace(' አስተዳደር', '')}</span>
-                    <span className="text-[10px] opacity-75">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Job List */}
-          <div className="space-y-2 pt-2 border-t border-slate-100">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
-              {lang === 'am' ? 'የተመዘገቡ መደቦች' : 'Active Positions'} ({filteredJds.length})
-            </span>
-
+          {/* List */}
+          <div className="space-y-2 max-h-[620px] overflow-y-auto pr-1">
             {filteredJds.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-400">
-                ምንም መደብ አልተገኘም።
+              <div className="p-8 text-center text-slate-400 text-xs">
+                {lang === 'am' ? 'ምንም የተገኘ የስራ መደብ የለም' : 'No job descriptions found'}
               </div>
             ) : (
               filteredJds.map((jd) => {
@@ -332,21 +356,26 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
                     onClick={() => setSelectedJdId(jd.id)}
                     className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-50/80 border-blue-400 shadow-xs'
-                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        ? 'bg-blue-50/70 border-blue-400 shadow-xs'
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-bold text-slate-900 text-xs leading-snug">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <span className="font-bold text-slate-900 text-xs line-clamp-1">
                         {jd.title}
                       </span>
-                      <ChevronRight className={`w-4 h-4 mt-0.5 shrink-0 transition-transform ${isSelected ? 'text-blue-700 translate-x-1' : 'text-slate-300'}`} />
+                      {jd.isCustom && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold shrink-0">
+                          አዲስ
+                        </span>
+                      )}
                     </div>
 
-                    <div className="mt-2 flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-slate-700 font-mono">
-                        {jd.level.split(' ')[0]}
-                      </span>
+                    <div className="text-[11px] text-slate-500 line-clamp-1 mb-2 font-mono">
+                      {jd.level}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${meta.badgeBg}`}>
                         <DeptIcon className="w-3 h-3" />
                         <span>{meta.labelAm}</span>
@@ -359,7 +388,7 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Detailed Job Description Sheet (8 cols) */}
+        {/* Right Column: Detailed View (8 cols) */}
         {activeJd && (
           <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
             {/* Header info */}
@@ -376,10 +405,26 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenEditModal(activeJd)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>{lang === 'am' ? 'አርትዕ' : 'Edit'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteJd(activeJd)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>{lang === 'am' ? 'ሰርዝ' : 'Delete'}</span>
+                  </button>
+
                   {onSelectJDToAppraisal && (
                     <button
                       onClick={() => onSelectJDToAppraisal(activeJd)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer"
                     >
                       <FileSpreadsheet className="w-3.5 h-3.5" />
                       <span>{lang === 'am' ? 'በዚህ መደብ ምዘና ጀምር' : 'Start Appraisal'}</span>
@@ -400,127 +445,272 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
               </div>
             </div>
 
-            {/* 1. Job Objective */}
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-              <h4 className="font-bold text-slate-900 mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide">
-                <BookOpen className="w-4 h-4 text-blue-600" />
-                <span>{lang === 'am' ? 'የሥራው ዋና ዓላማ (Job Purpose)' : 'Job Purpose / Objective'}</span>
-              </h4>
-              <p className="text-slate-700 leading-relaxed text-xs sm:text-[13px]">
-                {activeJd.jobObjective}
-              </p>
+            {/* Subtab Toggle for Active JD: Official Evaluation Matrix vs Job Description */}
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+              <button
+                onClick={() => setDetailTab('evaluationTable')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  detailTab === 'evaluationTable'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <TableIcon className="w-3.5 h-3.5" />
+                <span>{lang === 'am' ? 'ይፋዊ የሥራ አፈጻጸም ምዘና ሰንጠረዥ (60%)' : 'Official Evaluation Matrix (60%)'}</span>
+              </button>
+
+              <button
+                onClick={() => setDetailTab('specifications')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  detailTab === 'specifications'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>{lang === 'am' ? 'የሥራ መደቡ ዝርዝር መግለጫ (Job Description)' : 'Job Description & Duties'}</span>
+              </button>
             </div>
 
-            {/* 2. Main Duties and Responsibilities (Total 100%) */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-blue-600" />
-                  <span>{lang === 'am' ? 'ዋና ዋና ተግባራትና ኃላፊነቶች (Main Duties & Responsibilities)' : 'Key Duties & Responsibilities'}</span>
-                </h4>
-                <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                  ድምር ክብደት: 100%
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {activeJd.duties.map((duty, idx) => (
-                  <div key={duty.id} className="p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50/50 transition">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="font-bold text-slate-900 text-xs sm:text-sm">
-                        {idx + 1}. {duty.title}
-                      </span>
-                      <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-100 shrink-0">
-                        {duty.weightPercentage}% {lang === 'am' ? 'ክብደት' : 'weight'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      {duty.description}
-                    </p>
+            {/* SUBTAB 1: Official Evaluation Matrix (matching the uploaded images!) */}
+            {detailTab === 'evaluationTable' && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-2 bg-blue-50/80 p-3.5 rounded-xl border border-blue-200 text-xs text-blue-900">
+                  <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <strong>{lang === 'am' ? 'ይፋዊ የሥራ አፈጻጸም ምዘና መስፈርት ሰንጠረዥ፡' : 'Official 60% Evaluation Matrix:'}</strong>{' '}
+                    {lang === 'am'
+                      ? 'ይህ ሰንጠረዥ ለዚህ የስራ መደብ የተዘጋጀ 4ቱን የትኩረት አቅጣጫዎች እና ከባለሙያው የሚጠበቁ ዝርዝር ውጤቶችን ከክብደታቸው ጋር የያዘ ነው። አጠቃላይ ድምር ክብደት 60% (60 ነጥብ) ነው።'
+                      : 'Standardized result-oriented evaluation matrix covering the 4 strategic focus areas with assigned weights totaling 60 points.'}
                   </div>
-                ))}
+                </div>
+
+                {/* Table representation exactly matching the uploaded official images */}
+                <div className="overflow-x-auto rounded-xl border border-slate-300">
+                  <table className="w-full text-xs text-left border-collapse min-w-[700px]">
+                    <thead className="bg-slate-100 text-slate-800 font-bold uppercase text-[11px] tracking-wider border-b border-slate-300">
+                      <tr>
+                        <th className="border-r border-slate-300 p-3 text-center w-14">ተ.ቁ</th>
+                        <th className="border-r border-slate-300 p-3 w-1/3">የሚጠበቅ ውጤት</th>
+                        <th className="border-r border-slate-300 p-3">ከባለሙያው የሚጠበቅ ውጤት</th>
+                        <th className="p-3 text-center w-20">ክብደት</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {activeJd.evaluationTable?.map((cat) => {
+                        const totalRows = cat.tasks.length;
+                        return (
+                          <React.Fragment key={cat.no}>
+                            {cat.tasks.map((task, tIdx) => {
+                              const isFirst = tIdx === 0;
+                              return (
+                                <tr key={task.code} className="hover:bg-slate-50 transition">
+                                  {isFirst && (
+                                    <td
+                                      rowSpan={totalRows}
+                                      className="border-r border-slate-300 p-3 text-center font-bold text-slate-800 bg-slate-50/70 align-top"
+                                    >
+                                      {cat.no}
+                                    </td>
+                                  )}
+
+                                  {isFirst && (
+                                    <td
+                                      rowSpan={totalRows}
+                                      className="border-r border-slate-300 p-3 font-semibold text-slate-800 bg-slate-50/70 align-top leading-relaxed"
+                                    >
+                                      <div className="text-slate-900 font-bold mb-1">
+                                        {cat.expectedResult}
+                                      </div>
+                                    </td>
+                                  )}
+
+                                  <td className="border-r border-slate-300 p-3 text-slate-700 leading-relaxed">
+                                    <span className="font-bold text-slate-900 mr-2 font-mono">
+                                      {task.code}
+                                    </span>
+                                    {task.description}
+                                  </td>
+
+                                  <td className="p-3 text-center font-bold text-blue-700 font-mono text-sm bg-blue-50/20">
+                                    {task.weight}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot className="bg-slate-100 font-bold border-t-2 border-slate-300 text-slate-900">
+                      <tr>
+                        <td colSpan={3} className="border-r border-slate-300 p-3 text-right">
+                          {lang === 'am' ? 'አጠቃላይ ድምር ክብደት (Total Weight):' : 'Grand Total Weight:'}
+                        </td>
+                        <td className="p-3 text-center text-blue-800 text-sm font-mono font-extrabold bg-blue-100/60">
+                          {activeJd.evaluationTable?.reduce(
+                            (sum, c) => sum + c.tasks.reduce((tSum, t) => tSum + t.weight, 0),
+                            0
+                          ) || 60}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  {onSelectJDToAppraisal && (
+                    <button
+                      onClick={() => onSelectJDToAppraisal(activeJd)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{lang === 'am' ? 'ይህንን የምዘና ሰንጠረዥ ጫንና ምዘና ጀምር' : 'Load this Matrix & Begin Appraisal'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* 3. Job Specifications & Requirements */}
-            <div className="border-t border-slate-200 pt-5">
-              <h4 className="font-bold text-slate-900 mb-3 text-sm flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-emerald-600" />
-                <span>{lang === 'am' ? 'ተፈላጊ የትምህርትና የልምድ ዝግጅት (Job Specifications)' : 'Qualifications & Skills'}</span>
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-700 block mb-1">
-                    {lang === 'am' ? 'የትምህርት ደረጃ:' : 'Education:'}
-                  </span>
-                  <p className="text-slate-600 leading-relaxed">
-                    {activeJd.requirements.education}
+            {/* SUBTAB 2: Full Job Description, Duties, Requirements & KPIs */}
+            {detailTab === 'specifications' && (
+              <div className="space-y-6">
+                {/* 1. Job Objective */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                  <h4 className="font-bold text-slate-900 mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide">
+                    <BookOpen className="w-4 h-4 text-blue-600" />
+                    <span>{lang === 'am' ? 'የሥራው ዋና ዓላማ (Job Purpose)' : 'Job Purpose / Objective'}</span>
+                  </h4>
+                  <p className="text-slate-700 leading-relaxed text-xs sm:text-[13px]">
+                    {activeJd.jobObjective}
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-700 block mb-1">
-                    {lang === 'am' ? 'የስራ ልምድ:' : 'Experience:'}
-                  </span>
-                  <p className="text-slate-600 leading-relaxed">
-                    {activeJd.requirements.experience}
-                  </p>
-                </div>
-              </div>
-
-              {/* Technical skills and certifications */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mt-3">
-                {activeJd.requirements.certifications && (
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="font-bold text-slate-700 block mb-2">
-                      {lang === 'am' ? 'ሙያዊ ማረጋገጫዎች (Certifications):' : 'Professional Certifications:'}
+                {/* 2. Main Duties and Responsibilities (Total 100%) */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-blue-600" />
+                      <span>{lang === 'am' ? 'ዋና ዋና ተግባራትና ኃላፊነቶች (Main Duties & Responsibilities)' : 'Key Duties & Responsibilities'}</span>
+                    </h4>
+                    <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                      ድምር ክብደት: 100%
                     </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {activeJd.requirements.certifications.map((c, i) => (
-                        <span key={i} className="px-2 py-1 rounded-md bg-white text-slate-800 border border-slate-200 text-[11px] font-semibold flex items-center gap-1">
-                          <Award className="w-3 h-3 text-purple-600" />
-                          <span>{c}</span>
-                        </span>
-                      ))}
+                  </div>
+
+                  <div className="space-y-3">
+                    {activeJd.duties.map((duty, idx) => (
+                      <div key={duty.id || idx} className="p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50/50 transition">
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                            {idx + 1}. {duty.title}
+                          </span>
+                          <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-100 shrink-0">
+                            {duty.weightPercentage}% {lang === 'am' ? 'ክብደት' : 'weight'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          {duty.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Job Specifications & Requirements */}
+                <div className="border-t border-slate-200 pt-5">
+                  <h4 className="font-bold text-slate-900 mb-3 text-sm flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-emerald-600" />
+                    <span>{lang === 'am' ? 'ተፈላጊ የትምህርትና የልምድ ዝግጅት (Job Specifications)' : 'Qualifications & Skills'}</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="font-bold text-slate-700 block mb-1">
+                        {lang === 'am' ? 'የትምህርት ደረጃ:' : 'Education:'}
+                      </span>
+                      <p className="text-slate-600 leading-relaxed">
+                        {activeJd.requirements.education}
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="font-bold text-slate-700 block mb-1">
+                        {lang === 'am' ? 'የስራ ልምድ:' : 'Experience:'}
+                      </span>
+                      <p className="text-slate-600 leading-relaxed">
+                        {activeJd.requirements.experience}
+                      </p>
                     </div>
                   </div>
-                )}
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-700 block mb-2">
-                    {lang === 'am' ? 'የቴክኒክ ክህሎቶች (Technical Competencies):' : 'Technical Competencies:'}
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {activeJd.requirements.technicalSkills.map((s, i) => (
-                      <span key={i} className="px-2 py-1 rounded-md bg-white text-slate-800 border border-slate-200 text-[11px]">
-                        #{s}
+                  {/* Technical skills and certifications */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mt-3">
+                    {activeJd.requirements.certifications && (
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="font-bold text-slate-700 block mb-2">
+                          {lang === 'am' ? 'ሙያዊ ማረጋገጫዎች (Certifications):' : 'Professional Certifications:'}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {activeJd.requirements.certifications.map((c, i) => (
+                            <span key={i} className="px-2 py-1 rounded-md bg-white text-slate-800 border border-slate-200 text-[11px] font-semibold flex items-center gap-1">
+                              <Award className="w-3 h-3 text-purple-600" />
+                              <span>{c}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="font-bold text-slate-700 block mb-2">
+                        {lang === 'am' ? 'የቴክኒክ ክህሎቶች (Technical Competencies):' : 'Technical Competencies:'}
                       </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {activeJd.requirements.technicalSkills.map((s, i) => (
+                          <span key={i} className="px-2 py-1 rounded-md bg-white text-slate-800 border border-slate-200 text-[11px]">
+                            #{s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Key Performance Indicators (KPIs) */}
+                <div className="border-t border-slate-200 pt-5">
+                  <h4 className="font-bold text-slate-900 mb-3 text-sm flex items-center gap-2">
+                    <Award className="w-4 h-4 text-purple-600" />
+                    <span>{lang === 'am' ? 'ቁልፍ የአፈጻጸም መለኪያ አመልካቾች (KPIs)' : 'Key Performance Indicators (KPIs)'}</span>
+                  </h4>
+
+                  <div className="space-y-2">
+                    {activeJd.keyPerformanceIndicators.map((kpi, idx) => (
+                      <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 p-3 rounded-xl bg-purple-50/50 border border-purple-100">
+                        <CheckCircle className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                        <span className="leading-relaxed">{kpi}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* 4. Key Performance Indicators (KPIs) */}
-            <div className="border-t border-slate-200 pt-5">
-              <h4 className="font-bold text-slate-900 mb-3 text-sm flex items-center gap-2">
-                <Award className="w-4 h-4 text-purple-600" />
-                <span>{lang === 'am' ? 'ቁልፍ የአፈጻጸም መለኪያ አመልካቾች (KPIs)' : 'Key Performance Indicators (KPIs)'}</span>
-              </h4>
-
-              <div className="space-y-2">
-                {activeJd.keyPerformanceIndicators.map((kpi, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 p-3 rounded-xl bg-purple-50/50 border border-purple-100">
-                    <CheckCircle className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">{kpi}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Add / Edit Job Description Modal */}
+      <JobDescriptionModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingJd(null);
+        }}
+        onSave={handleSaveJd}
+        initialData={editingJd}
+        departments={departmentsList}
+        lang={lang}
+      />
     </div>
   );
 };

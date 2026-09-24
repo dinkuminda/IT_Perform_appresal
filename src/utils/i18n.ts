@@ -25,7 +25,7 @@ export const translations = {
     tab4: 'የምዘና መዝገቦችና ታሪክ',
 
     // Tab 1 headers
-    tab1Header: '1. የሥራ አፈጻጸም ምዘና ቅጽ (ከ 60%)',
+    tab1Header: '1. የ6 ወር የሥራ አፈጻጸም ምዘና ቅጽ (ከ 60%)',
     taskScoreLabel: 'የሥራ አፈጻጸም ድምር',
     scaleLegend: 'የደረጃ መለኪያ፡ 1 = ዝቅተኛ | 2 = አጥጋቢ | 3 = ከፍተኛ | 4 = በጣም ከፍተኛ። ስሌት፡ (ክብደት * ደረጃ) / 4',
     colNo: 'ተ.ቁ',
@@ -106,7 +106,7 @@ export const translations = {
     tab4: 'Saved Appraisals & History',
 
     // Tab 1 headers
-    tab1Header: '1. Task Performance Evaluation Sheet (Out of 60%)',
+    tab1Header: '1. 6-Month Performance Appraisal Form (Out of 60%)',
     taskScoreLabel: 'Task Performance Subtotal',
     scaleLegend: 'Rating scale: 1 = Low | 2 = Satisfactory | 3 = High | 4 = Very High. Formula: (Weight * Rating) / 4',
     colNo: 'No.',

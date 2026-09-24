@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppraisalRecord } from './types/appraisal';
+import { AppraisalRecord, TaskCategory } from './types/appraisal';
 import { MonthlyReport } from './types/monthlyReport';
 import { JobDescription } from './types/jobDescription';
 import { Employee } from './types/employee';
@@ -18,7 +18,8 @@ import { Language, translations } from './utils/i18n';
 import { 
   calculateTotalTaskScore, 
   calculateTotalCompetencyScore, 
-  getPerformanceGrade 
+  getPerformanceGrade,
+  convertEvaluationTableToTaskCategories
 } from './utils/calculations';
 
 import { Sidebar } from './components/Sidebar';
@@ -95,9 +96,14 @@ export default function App() {
       const stored = localStorage.getItem(JOB_DESCRIPTIONS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        const hasDbDept = Array.isArray(parsed) && parsed.some((j: JobDescription) => j.department?.includes('ዳታቤዝ'));
-        if (Array.isArray(parsed) && parsed.length >= 6 && hasDbDept) {
+        const hasEvalTable = Array.isArray(parsed) && parsed.some((j: JobDescription) => j.evaluationTable && j.evaluationTable.length > 0);
+        if (hasEvalTable) {
           return parsed;
+        }
+        // Preserve any custom job descriptions created by the user
+        const customItems = Array.isArray(parsed) ? parsed.filter((j: JobDescription) => j.isCustom) : [];
+        if (customItems.length > 0) {
+          return [...DEFAULT_JOB_DESCRIPTIONS, ...customItems];
         }
       }
     } catch (e) {
@@ -265,14 +271,71 @@ export default function App() {
   };
 
   const handleDeleteRecord = (id: string) => {
-    if (savedRecords.length <= 1) {
-      alert(lang === 'am' ? 'ቢያንስ አንድ የምዘና መዝገብ መኖር አለበት።' : 'At least one record must be maintained.');
-      return;
+    if (window.confirm(lang === 'am' ? 'እርግጠኛ ነዎት ይህንን የምዘና መዝገብ መሰረዝ ይፈልጋሉ?' : 'Are you sure you want to delete this appraisal record?')) {
+      const filtered = savedRecords.filter((r) => r.id !== id);
+      if (filtered.length === 0) {
+        const newId = `appraisal-${Date.now()}`;
+        const newRecord: AppraisalRecord = {
+          id: newId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          metadata: {
+            ...DEFAULT_METADATA,
+            empName: '',
+            empId: `ICS-IT-${Math.floor(1000 + Math.random() * 9000)}`,
+            evalDate: new Date().toISOString().split('T')[0]
+          },
+          categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+          competencies: JSON.parse(JSON.stringify(DEFAULT_COMPETENCIES)),
+          supervisorComments: '',
+          employeeComments: '',
+          supervisorSigned: false,
+          employeeSigned: false,
+          supervisorSignDate: '',
+          employeeSignDate: '',
+          approvalStatus: 'draft'
+        };
+        setSavedRecords([newRecord]);
+        setCurrentRecord(newRecord);
+      } else {
+        setSavedRecords(filtered);
+        if (currentRecord.id === id) {
+          setCurrentRecord(filtered[0]);
+        }
+      }
+      setIsSavedToast(true);
+      setTimeout(() => setIsSavedToast(false), 2000);
     }
-    const filtered = savedRecords.filter((r) => r.id !== id);
-    setSavedRecords(filtered);
-    if (currentRecord.id === id) {
-      setCurrentRecord(filtered[0]);
+  };
+
+  const handleDeleteMonthlyReport = (id: string) => {
+    setMonthlyReports((prev) => prev.filter((r) => r.id !== id));
+    setIsSavedToast(true);
+    setTimeout(() => setIsSavedToast(false), 2000);
+  };
+
+  const handleDeleteCurrentPage = () => {
+    if (currentModule === 'appraisal') {
+      handleDeleteRecord(currentRecord.id);
+    } else if (currentModule === 'monthly') {
+      const rep = monthlyReports[0];
+      if (rep && window.confirm(lang === 'am' ? `ይህንን ወርሃዊ ሪፖርት (${rep.employeeName || ''} - ${rep.month}) መሰረዝ ይፈልጋሉ?` : 'Delete this monthly report?')) {
+        handleDeleteMonthlyReport(rep.id);
+      }
+    } else if (currentModule === 'jobs') {
+      const jd = jobDescriptions[0];
+      if (jd && window.confirm(lang === 'am' ? `"${jd.title}" የስራ መደብ መግለጫ ይሰረዝ?` : `Delete job description "${jd.title}"?`)) {
+        handleDeleteJobDescription(jd.id);
+      }
+    } else if (currentModule === 'employees') {
+      const emp = employees[0];
+      if (emp && window.confirm(lang === 'am' ? `"${emp.fullNameAm}" ከሰራተኞች ማውጫ ይሰረዝ?` : `Delete employee "${emp.fullNameAm}"?`)) {
+        handleDeleteEmployee(emp.id);
+      }
+    } else if (currentModule === 'dashboard') {
+      if (window.confirm(lang === 'am' ? 'የዳሽቦርድ መረጃዎችን ወደ መጀመሪያው ይዘት ማጽዳት/ማደስ (Reset) ይፈልጋሉ?' : 'Reset dashboard data to defaults?')) {
+        handleReset();
+      }
     }
   };
 
@@ -334,24 +397,34 @@ export default function App() {
     setCurrentModule('monthly');
   };
 
+  const handleAddJobDescription = (newJd: JobDescription) => {
+    setJobDescriptions((prev) => [newJd, ...prev]);
+    setIsSavedToast(true);
+    setTimeout(() => setIsSavedToast(false), 2000);
+  };
+
+  const handleUpdateJobDescription = (updatedJd: JobDescription) => {
+    setJobDescriptions((prev) => prev.map((j) => (j.id === updatedJd.id ? updatedJd : j)));
+    setIsSavedToast(true);
+    setTimeout(() => setIsSavedToast(false), 2000);
+  };
+
+  const handleDeleteJobDescription = (id: string) => {
+    setJobDescriptions((prev) => prev.filter((j) => j.id !== id));
+    setIsSavedToast(true);
+    setTimeout(() => setIsSavedToast(false), 2000);
+  };
+
   const handleSelectJDToAppraisal = (jd: JobDescription) => {
     const newId = `appraisal-${Date.now()}`;
-    const newRecord: AppraisalRecord = {
-      id: newId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      metadata: {
-        ...DEFAULT_METADATA,
-        empName: '',
-        empId: `ICS-IT-${Math.floor(1000 + Math.random() * 9000)}`,
-        empDept: jd.department.split(' ')[0],
-        empPosition: jd.title,
-        evalPeriod: 'ከ ጥር 1/2018 እስከ ሰኔ 30/2018 ዓ.ም',
-        supervisorName: jd.reportsTo,
-        evalDate: new Date().toISOString().split('T')[0],
-        evalType: 'half-year'
-      },
-      categories: jd.duties.map((duty, idx) => {
+    let selectedCategories: TaskCategory[];
+
+    if (jd.taskCategories && jd.taskCategories.length > 0) {
+      selectedCategories = JSON.parse(JSON.stringify(jd.taskCategories));
+    } else if (jd.evaluationTable && jd.evaluationTable.length > 0) {
+      selectedCategories = convertEvaluationTableToTaskCategories(jd.evaluationTable);
+    } else {
+      selectedCategories = jd.duties.map((duty, idx) => {
         const catWeight = Math.round((duty.weightPercentage / 100) * 60);
         const qualityWeight = Math.max(1, Math.round(catWeight * 0.6));
         const timeWeight = Math.max(1, catWeight - qualityWeight);
@@ -381,7 +454,25 @@ export default function App() {
             }
           ]
         };
-      }),
+      });
+    }
+
+    const newRecord: AppraisalRecord = {
+      id: newId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      metadata: {
+        ...DEFAULT_METADATA,
+        empName: '',
+        empId: `ICS-IT-${Math.floor(1000 + Math.random() * 9000)}`,
+        empDept: jd.department.split(' ')[0],
+        empPosition: jd.title,
+        evalPeriod: 'ከ ጥር 1/2018 እስከ ሰኔ 30/2018 ዓ.ም',
+        supervisorName: jd.reportsTo,
+        evalDate: new Date().toISOString().split('T')[0],
+        evalType: 'half-year'
+      },
+      categories: selectedCategories,
       competencies: JSON.parse(JSON.stringify(DEFAULT_COMPETENCIES)),
       supervisorComments: '',
       employeeComments: '',
@@ -460,6 +551,7 @@ export default function App() {
           onToggleSidebarMobile={() => setIsSidebarOpenMobile((prev) => !prev)}
           onSave={handleManualSave}
           onPrint={() => window.print()}
+          onDelete={handleDeleteCurrentPage}
           isSavedToast={isSavedToast}
           totalScore={totalScore}
         />
@@ -499,6 +591,7 @@ export default function App() {
           <MonthlyReportView
             reports={monthlyReports}
             onSaveReport={handleSaveMonthlyReport}
+            onDeleteReport={handleDeleteMonthlyReport}
             lang={lang}
           />
         )}
@@ -508,6 +601,9 @@ export default function App() {
           <JobDescriptionView
             jobDescriptions={jobDescriptions}
             onSelectJDToAppraisal={handleSelectJDToAppraisal}
+            onAddJobDescription={handleAddJobDescription}
+            onUpdateJobDescription={handleUpdateJobDescription}
+            onDeleteJobDescription={handleDeleteJobDescription}
             lang={lang}
           />
         )}
@@ -515,13 +611,6 @@ export default function App() {
         {/* Module 5: Performance Appraisal Form View */}
         {currentModule === 'appraisal' && (
           <div>
-            {/* Employee & Evaluation Metadata */}
-            <MetadataSection
-              metadata={currentRecord.metadata}
-              onChange={(newMeta) => handleUpdateRecord({ metadata: newMeta })}
-              lang={lang}
-            />
-
             {/* Tab Navigation: Zero-Pill Interactive Filter/Tab Controls */}
             <div className="border-b border-slate-200 mb-6 bg-white rounded-t-xl px-4 shadow-2xs">
               <nav className="flex space-x-6 overflow-x-auto" aria-label="Tabs">
@@ -577,7 +666,11 @@ export default function App() {
               <TaskEvaluationTab
                 categories={currentRecord.categories}
                 onChangeCategories={(cats) => handleUpdateRecord({ categories: cats })}
+                metadata={currentRecord.metadata}
+                onChangeMetadata={(newMeta) => handleUpdateRecord({ metadata: newMeta })}
                 lang={lang}
+                jobDescriptions={jobDescriptions}
+                onDeleteRecord={() => handleDeleteRecord(currentRecord.id)}
               />
             )}
 
@@ -586,7 +679,10 @@ export default function App() {
               <CompetencyTab
                 competencies={currentRecord.competencies}
                 onChangeCompetencies={(comps) => handleUpdateRecord({ competencies: comps })}
+                metadata={currentRecord.metadata}
+                onChangeMetadata={(newMeta) => handleUpdateRecord({ metadata: newMeta })}
                 lang={lang}
+                onDeleteRecord={() => handleDeleteRecord(currentRecord.id)}
               />
             )}
 
@@ -596,6 +692,7 @@ export default function App() {
                 record={currentRecord}
                 onUpdateRecord={handleUpdateRecord}
                 lang={lang}
+                onDeleteRecord={() => handleDeleteRecord(currentRecord.id)}
               />
             )}
           </div>

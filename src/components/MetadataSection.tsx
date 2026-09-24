@@ -2,6 +2,7 @@ import React from 'react';
 import { EmployeeMetadata } from '../types/appraisal';
 import { Language, translations } from '../utils/i18n';
 import { User, Building, Briefcase, Calendar, ShieldCheck, Tag } from 'lucide-react';
+import { OFFICIAL_STAFF_POSITIONS } from '../data/officialStaffPositions';
 
 interface MetadataSectionProps {
   metadata: EmployeeMetadata;
@@ -21,6 +22,19 @@ export const MetadataSection: React.FC<MetadataSectionProps> = ({
       ...metadata,
       [field]: value
     });
+  };
+
+  const handleSelectOfficialPosition = (titleAm: string) => {
+    const found = OFFICIAL_STAFF_POSITIONS.find((p) => p.titleAm === titleAm);
+    if (found) {
+      onChange({
+        ...metadata,
+        empPosition: found.titleAm,
+        empDept: found.departmentAm
+      });
+    } else {
+      handleFieldChange('empPosition', titleAm);
+    }
   };
 
   return (
@@ -100,19 +114,54 @@ export const MetadataSection: React.FC<MetadataSectionProps> = ({
           />
         </div>
 
-        {/* Position / Title */}
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1 flex items-center gap-1.5">
-            <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-            <span>{t.empPosition}</span>
-          </label>
-          <input
-            type="text"
-            value={metadata.empPosition}
-            onChange={(e) => handleFieldChange('empPosition', e.target.value)}
-            placeholder="ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII"
-            className="w-full border border-slate-300 rounded-md px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-          />
+        {/* Position / Title & Grade */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-medium text-slate-600 flex items-center gap-1.5">
+              <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+              <span>{t.empPosition} እና ደረጃ</span>
+            </label>
+            {metadata.empPosition && (
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                {metadata.empPosition.includes('ደረጃ XIII') ? 'ደረጃ XIII' :
+                 metadata.empPosition.includes('ደረጃ XII') ? 'ደረጃ XII' :
+                 metadata.empPosition.includes('ደረጃ XI') ? 'ደረጃ XI' :
+                 metadata.empPosition.includes('ደረጃ X') ? 'ደረጃ X' : 'ደረጃ'}
+              </span>
+            )}
+          </div>
+          <select
+            value={
+              OFFICIAL_STAFF_POSITIONS.some((p) => p.titleAm === metadata.empPosition)
+                ? metadata.empPosition
+                : metadata.empPosition || ''
+            }
+            onChange={(e) => handleSelectOfficialPosition(e.target.value)}
+            className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition cursor-pointer"
+          >
+            <option value="">{lang === 'am' ? '-- ይፋዊ የስራ መደብና ደረጃ ይምረጡ --' : '-- Select Official Role & Grade --'}</option>
+            {metadata.empPosition && !OFFICIAL_STAFF_POSITIONS.some((p) => p.titleAm === metadata.empPosition) && (
+              <option value={metadata.empPosition}>{metadata.empPosition}</option>
+            )}
+            <optgroup label="🌐 የኔትዎርክ አስተዳደር (Network Administration)">
+              <option value="ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII">ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII</option>
+              <option value="መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII">መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII</option>
+              <option value="ረዳት የኔትወርክ ባለሙያ ደረጃ XI">ረዳት የኔትወርክ ባለሙያ ደረጃ XI</option>
+              <option value="ጀማሪ የኔትወርክ ባለሙያ ደረጃ X">ጀማሪ የኔትወርክ ባለሙያ ደረጃ X</option>
+            </optgroup>
+            <optgroup label="💾 የዳታቤዝ አስተዳደር (Database Administration)">
+              <option value="ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII">ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII</option>
+              <option value="መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII">መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII</option>
+              <option value="ረዳት የዳታቤዝ ባለሙያ ደረጃ XI">ረዳት የዳታቤዝ ባለሙያ ደረጃ XI</option>
+              <option value="ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X">ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X</option>
+            </optgroup>
+            <optgroup label="🖥️ የሲስተም አስተዳደር (System Administration)">
+              <option value="ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII">ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII</option>
+              <option value="መካከለኛ የሲስተም ባለሙያ ደረጃ XII">መካከለኛ የሲስተም ባለሙያ ደረጃ XII</option>
+              <option value="ረዳት የሲስተም ባለሙያ ደረጃ XI">ረዳት የሲስተም ባለሙያ ደረጃ XI</option>
+              <option value="ጀማሪ የሲስተም ባለሙያ ደረጃ X">ጀማሪ የሲስተም ባለሙያ ደረጃ X</option>
+            </optgroup>
+          </select>
         </div>
 
         {/* Evaluation Period */}

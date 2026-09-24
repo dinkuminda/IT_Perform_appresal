@@ -1,8 +1,10 @@
 export type RatingLevel = 1 | 2 | 3 | 4;
 
+export type CriterionType = 'ጥራት' | 'ጊዜ' | 'Quality' | 'Time' | 'ብዛት' | 'ወጪ' | string;
+
 export interface Criterion {
   id: string;
-  type: 'ጥራት' | 'ጊዜ' | 'Quality' | 'Time';
+  type: CriterionType;
   weight: number;
   rating: RatingLevel;
 }

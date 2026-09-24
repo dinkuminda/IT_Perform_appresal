@@ -71,30 +71,62 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ record }) => {
         </tbody>
       </table>
 
-      {/* 1. Job Performance Section (60%) */}
+      {/* 1. Job Performance Section (60%) - Official Format (60.jpg) */}
       <div className="mb-6">
-        <div className="flex justify-between items-center mb-2 pb-1 border-b border-black">
-          <h4 className="font-bold text-sm">
-            ክፍል 1፡ የሥራ አፈጻጸም ምዘና ቅጽ (ከ 60%)
-          </h4>
-          <span className="font-bold font-mono text-sm">
-            ድምር፡ {grandTaskScore.toFixed(2)} / 60.00
-          </span>
+        <div className="text-center pb-3 mb-3">
+          <h3 className="font-extrabold text-base sm:text-lg">
+            የ6 ወር የአፈፃፀም ምዘና ቅጽ ከ60%
+          </h3>
         </div>
 
-        <table className="w-full border-collapse border border-black text-[10px]">
-          <thead className="bg-slate-100 font-bold">
+        {/* Two-Column Official Metadata Header */}
+        <div className="grid grid-cols-2 gap-4 text-xs font-semibold mb-4 text-black">
+          <div className="space-y-1">
+            <div><span className="font-bold">የሠራተኛው ሙሉ ስም በአማርኛ ፡-</span> {metadata.empName}</div>
+            <div><span className="font-bold">የሥራ ክፍሉ መጠሪያ፡-</span>{metadata.empDept}</div>
+          </div>
+          <div className="space-y-1">
+            <div>
+              <span className="font-bold">ደረጃ፡-</span>{' '}
+              {metadata.empPosition.includes('ደረጃ XIII') ? 'XIII' :
+               metadata.empPosition.includes('ደረጃ XII') ? 'XII' :
+               metadata.empPosition.includes('ደረጃ XI') ? 'XI' :
+               metadata.empPosition.includes('ደረጃ X') ? 'X' : 'XIII'}
+            </div>
+            <div>
+              <span className="font-bold">የሥራ መደብ መጠሪያ ፡-</span>{' '}
+              {metadata.empPosition.replace(/ደረጃ\s*(XIII|XII|XI|X)/gi, '').trim() || 'ከፍተኛ የኔትወርክ ባለሙያ'}
+            </div>
+            <div><span className="font-bold">የአፈፃፀም ምዘናው ጊዜ</span> {metadata.evalPeriod}</div>
+          </div>
+        </div>
+
+        <table className="w-full border-collapse border border-black text-[9px] sm:text-[10px]">
+          <thead className="bg-slate-100 font-bold text-center">
             <tr>
-              <th className="border border-black p-1 text-center w-6">ተ.ቁ</th>
-              <th className="border border-black p-1 w-1/4">የሚጠበቅ ውጤት</th>
-              <th className="border border-black p-1 w-1/3">ከባለሙያ የሚጠበቅ ዝርዝር ተግባር</th>
-              <th className="border border-black p-1 text-center w-10">ክብደት</th>
-              <th className="border border-black p-1 text-center w-12">መለኪያ</th>
-              <th className="border border-black p-1 text-center w-10">ክብደት</th>
-              <th className="border border-black p-1 text-center w-14">ደረጃ</th>
-              <th className="border border-black p-1 text-center w-12">አጠቃላይ</th>
-              <th className="border border-black p-1 text-center w-12">የተገኘ</th>
-              <th className="border border-black p-1 text-center w-14">ውጤት</th>
+              <th rowSpan={2} className="border border-black p-1 w-6 align-middle">ተቁ</th>
+              <th rowSpan={2} className="border border-black p-1 w-36 align-middle">የሚጠበቅ ውጤት</th>
+              <th rowSpan={2} className="border border-black p-1 align-middle">ከባለሙያ የሚጠበቅ ውጤት</th>
+              <th rowSpan={2} className="border border-black p-1 w-8 align-middle">ክብደት</th>
+              <th rowSpan={2} className="border border-black p-1 w-14 align-middle">መመዘኛ/ ጥራት፣ ጊዜ፣ ወጪ/</th>
+              <th rowSpan={2} className="border border-black p-1 w-10 align-middle">የመመዘኛ ክብደት</th>
+              <th colSpan={4} className="border border-black p-0.5">የአፈፃፀም ደረጃ</th>
+              <th rowSpan={2} className="border border-black p-1 w-16 align-middle leading-tight text-[8px]">
+                አጠቃላይ ውጤት/የተገኘ ውጤት/በ-አፈጻጸም ደረጃ/
+              </th>
+              <th rowSpan={2} className="border border-black p-1 w-16 align-middle leading-tight text-[8px]">
+                በ/ ከፍተኛ ተባዝቶ የሚገኝ ውጤት /በክብደት*4/
+              </th>
+              <th rowSpan={2} className="border border-black p-1 w-14 align-middle leading-tight text-[8px]">
+                የተሰጠ ውጤት
+                <span className="block font-normal text-[7px]">አንጻር የተሰጠ ውጤት /ከስድሳ/በአጠቃላይ ውጤት /</span>
+              </th>
+            </tr>
+            <tr>
+              <th className="border border-black p-0.5 w-7 text-center">ዝቅተኛ 1</th>
+              <th className="border border-black p-0.5 w-7 text-center">አጥጋቢ 2</th>
+              <th className="border border-black p-0.5 w-7 text-center">ከፍተኛ 3</th>
+              <th className="border border-black p-0.5 w-8 text-center">በጣም ከፍተኛ 4</th>
             </tr>
           </thead>
           <tbody>
@@ -132,7 +164,7 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ record }) => {
                                   rowSpan={catRowSpan}
                                   className="border border-black p-1 font-semibold align-top bg-slate-50"
                                 >
-                                  {cat.title} ({cat.weight}%)
+                                  {cat.title}
                                 </td>
                               )}
                               {isStFirst && (
@@ -143,16 +175,24 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ record }) => {
                                   <strong>{st.subId}</strong> {st.desc}
                                 </td>
                               )}
-                              <td className="border border-black p-1 text-center">{cat.weight}</td>
+                              {isStFirst && (
+                                <td
+                                  rowSpan={stRowSpan}
+                                  className="border border-black p-1 text-center font-bold align-middle bg-slate-50"
+                                >
+                                  {st.criteria.reduce((s, c) => s + (Number(c.weight) || 0), 0)}
+                                </td>
+                              )}
                               <td className="border border-black p-1 text-center">{crit.type}</td>
-                              <td className="border border-black p-1 text-center">{crit.weight}</td>
-                              <td className="border border-black p-1 text-center font-bold">
-                                {crit.rating}
-                              </td>
-                              <td className="border border-black p-1 text-center">{calc.maxProduct}</td>
-                              <td className="border border-black p-1 text-center">{calc.actualProduct}</td>
+                              <td className="border border-black p-1 text-center font-bold">{crit.weight}</td>
+                              <td className="border border-black p-1 text-center font-bold">{crit.rating === 1 ? '1' : ''}</td>
+                              <td className="border border-black p-1 text-center font-bold">{crit.rating === 2 ? '2' : ''}</td>
+                              <td className="border border-black p-1 text-center font-bold">{crit.rating === 3 ? '3' : ''}</td>
+                              <td className="border border-black p-1 text-center font-bold">{crit.rating === 4 ? '4' : ''}</td>
+                              <td className="border border-black p-1 text-center font-mono">{calc.actualProduct}</td>
+                              <td className="border border-black p-1 text-center font-mono">{calc.actualProduct}</td>
                               <td className="border border-black p-1 text-center font-bold font-mono">
-                                {calc.scaledScore.toFixed(2)}
+                                {Number.isInteger(calc.scaledScore) ? calc.scaledScore : calc.scaledScore.toFixed(2)}
                               </td>
                             </tr>
                           );
@@ -166,15 +206,12 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ record }) => {
           </tbody>
           <tfoot className="bg-slate-100 font-bold">
             <tr>
-              <td colSpan={3} className="border border-black p-1.5 text-right">
-                የተግባራት አጠቃላይ ድምር (ከ 60%):
-              </td>
-              <td className="border border-black p-1.5 text-center font-mono">60</td>
-              <td colSpan={5} className="border border-black p-1.5 text-right">
-                የተገኘ የሥራ አፈጻጸም ውጤት:
-              </td>
-              <td className="border border-black p-1.5 text-center font-bold font-mono text-xs">
-                {grandTaskScore.toFixed(2)}
+              <td colSpan={5} className="border border-black p-1"></td>
+              <td className="border border-black p-1 text-center font-mono">60</td>
+              <td colSpan={5} className="border border-black p-1"></td>
+              <td className="border border-black p-1 text-center font-bold">ድምር</td>
+              <td className="border border-black p-1 text-center font-bold font-mono">
+                {Number.isInteger(grandTaskScore) ? grandTaskScore : grandTaskScore.toFixed(2)}
               </td>
             </tr>
           </tfoot>
@@ -184,45 +221,58 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ record }) => {
       {/* Page Break for Part 2 and Summary */}
       <div className="print-break-before"></div>
 
-      {/* 2. Core Competencies Section (40%) */}
-      <div className="mb-6 pt-4">
-        <div className="flex justify-between items-center mb-2 pb-1 border-b border-black">
-          <h4 className="font-bold text-sm">
-            ክፍል 2፡ የባህሪ ምዘና - Core Competencies (ከ 40%)
+      {/* 2. Core Competencies Section (40%) - Official Format */}
+      <div className="mb-6 pt-2">
+        <div className="text-center mb-3">
+          <h4 className="font-extrabold text-sm sm:text-base border-b border-black pb-1 inline-block">
+            የኢሚግሬሽንና ዜግነት አገልግሎት የሠራተኛ የባህሪ (Core Competencies) ግምገማና ምዘና መሙያ ቅጽ ከ40%
           </h4>
-          <span className="font-bold font-mono text-sm">
-            ድምር፡ {grandCompScore.toFixed(2)} / 40.00
-          </span>
         </div>
 
-        <table className="w-full border-collapse border border-black text-xs mb-4">
+        {/* Employee Metadata Header */}
+        <div className="text-xs space-y-1 mb-3 font-semibold">
+          <div><span className="font-bold">የሰራተኛው ስም :-</span> {metadata.empName}</div>
+          <div><span className="font-bold">የሥራ ክፍል :-</span> {metadata.empDept}</div>
+          <div><span className="font-bold">ሥራ መደቡ:-</span> {metadata.empPosition}</div>
+          <div><span className="font-bold">የግምገማው ጊዜ :-</span> {metadata.evalPeriod}</div>
+        </div>
+
+        <table className="w-full border-collapse border border-black text-xs mb-3">
           <thead className="bg-slate-100 font-bold">
             <tr>
-              <th className="border border-black p-1.5 w-1/3">የመገምገሚያ ነጥብ</th>
-              <th className="border border-black p-1.5 text-center w-16">ክብደት</th>
-              <th className="border border-black p-1.5 text-center w-24">የአፈጻጸም ደረጃ (1-4)</th>
-              <th className="border border-black p-1.5 text-center w-24">የተገኘ ውጤት (%)</th>
-              <th className="border border-black p-1.5 text-center w-28">የቡድን መሪው / ከ 40%</th>
+              <th rowSpan={2} className="border border-black p-1.5 w-2/5 text-left">የመገምገሚያ ነጥብ</th>
+              <th rowSpan={2} className="border border-black p-1.5 text-center w-16">ክብደት</th>
+              <th colSpan={4} className="border border-black p-1 text-center">የአፈፃፀም ደረጃ</th>
+              <th rowSpan={2} className="border border-black p-1 text-center w-20">የተገኘው ውጤት</th>
+              <th className="border border-black p-1 text-center w-20">የቡድን መሪው</th>
+            </tr>
+            <tr>
+              <th className="border border-black p-1 text-center w-8">1</th>
+              <th className="border border-black p-1 text-center w-8">2</th>
+              <th className="border border-black p-1 text-center w-8">3</th>
+              <th className="border border-black p-1 text-center w-8">4</th>
+              <th className="border border-black p-1 text-center text-[10px]">40%</th>
             </tr>
           </thead>
           <tbody>
             {competencies.map((comp) => {
-              const calc = calculateCompetencyItem(comp.rating, comp.weight);
+              const weight = Number(comp.weight) || 25;
+              const rating = comp.rating || 4;
+              const scorePercent = Number(((rating / 4) * 100).toFixed(0));
+              const weightedShare = Number(((weight * scorePercent) / 100).toFixed(2));
+              const score40 = Number(((weightedShare * 40) / 100).toFixed(2));
+
               return (
                 <tr key={`print-comp-${comp.id}`}>
-                  <td className="border border-black p-2 font-semibold">
-                    {comp.name}
-                    {comp.notes && (
-                      <div className="text-[10px] text-slate-700 italic mt-0.5">
-                        ማስታወሻ፡ {comp.notes}
-                      </div>
-                    )}
-                  </td>
-                  <td className="border border-black p-2 text-center font-bold">{comp.weight}%</td>
-                  <td className="border border-black p-2 text-center font-bold">{comp.rating}</td>
-                  <td className="border border-black p-2 text-center font-mono">{calc.percentResult.toFixed(0)}%</td>
-                  <td className="border border-black p-2 text-center font-bold font-mono">
-                    {calc.scoreOutOf40.toFixed(2)}
+                  <td className="border border-black p-1.5 font-medium">{comp.name}</td>
+                  <td className="border border-black p-1.5 text-center font-bold">{weight}%</td>
+                  <td className="border border-black p-1.5 text-center font-bold">{rating === 1 ? '1' : ''}</td>
+                  <td className="border border-black p-1.5 text-center font-bold">{rating === 2 ? '2' : ''}</td>
+                  <td className="border border-black p-1.5 text-center font-bold">{rating === 3 ? '3' : ''}</td>
+                  <td className="border border-black p-1.5 text-center font-bold">{rating === 4 ? '4' : ''}</td>
+                  <td className="border border-black p-1.5 text-center font-mono">{scorePercent}</td>
+                  <td className="border border-black p-1.5 text-center font-bold font-mono">
+                    {Number.isInteger(score40) ? score40 : score40.toFixed(1)}
                   </td>
                 </tr>
               );
@@ -230,77 +280,119 @@ export const PrintDocument: React.FC<PrintDocumentProps> = ({ record }) => {
           </tbody>
           <tfoot className="bg-slate-100 font-bold">
             <tr>
-              <td className="border border-black p-1.5 text-right">አጠቃላይ ድምር (Total):</td>
+              <td className="border border-black p-1.5 font-bold">አጠቃላይ ድምር</td>
               <td className="border border-black p-1.5 text-center font-mono">100%</td>
               <td className="border border-black p-1.5"></td>
-              <td className="border border-black p-1.5 text-center font-mono">{totalPercent.toFixed(0)}%</td>
-              <td className="border border-black p-1.5 text-center font-bold font-mono text-xs">
-                {grandCompScore.toFixed(2)}
+              <td className="border border-black p-1.5"></td>
+              <td className="border border-black p-1.5"></td>
+              <td className="border border-black p-1.5"></td>
+              <td className="border border-black p-1.5"></td>
+              <td className="border border-black p-1.5 text-center font-bold font-mono text-sm">
+                {Number.isInteger(grandCompScore) ? grandCompScore : grandCompScore.toFixed(1)}
               </td>
             </tr>
           </tfoot>
         </table>
+
+        {/* Legend & Calculation Breakdown */}
+        <div className="text-xs space-y-1 font-semibold pt-1">
+          <div className="flex gap-4 font-bold">
+            <span>በጣም ከፍተኛ = 4</span>
+            <span>ከፍተኛ = 3</span>
+            <span>አጥጋቢ = 2</span>
+            <span>ዝቅተኛ = 1</span>
+          </div>
+          <div className="font-mono text-[11px] space-y-0.5 pt-1">
+            {competencies.map((comp, idx) => {
+              const weight = Number(comp.weight) || 25;
+              const rating = comp.rating || 4;
+              const scorePercent = Number(((rating / 4) * 100).toFixed(0));
+              const weightedShare = Number(((weight * scorePercent) / 100).toFixed(2));
+              const score40 = Number(((weightedShare * 40) / 100).toFixed(2));
+              let shortName = comp.name.includes('አገር') ? 'አገር ወዳድነት' :
+                              comp.name.includes('ስብዕና') ? 'የተሟላ ስብዕና' :
+                              comp.name.includes('ተባብሮ') || comp.name.includes('Sprit') ? 'በቡድን መስራት' :
+                              comp.name.includes('ሙያዊ') ? 'ሙያዊ ብቃት' : `ባህሪ ${idx+1}`;
+              return (
+                <div key={`p-calc-${comp.id}`}>
+                  ✓ {shortName}= {weightedShare}*40/100={score40}
+                </div>
+              );
+            })}
+            <div className="font-bold pt-1 text-xs">
+              ከ40% = {Number.isInteger(grandCompScore) ? grandCompScore : grandCompScore.toFixed(1)}%
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* 3. Overall Performance Summary & Signatures */}
-      <div className="mb-6">
-        <h4 className="font-bold text-sm mb-2 pb-1 border-b border-black">
-          ክፍል 3፡ ጠቅላላ የአፈጻጸም ምዘና ማጠቃለያ ውጤት መግለጫ (Overall Summary)
+      {/* 3. Overall Performance Summary & Signatures - Official Format */}
+      <div className="mb-6 pt-4">
+        <h4 className="font-extrabold text-sm sm:text-base mb-3 pb-1 underline decoration-2 underline-offset-4">
+          የአፈፃፀም ምዘናው ማጠቃለያ ውጤት መግለጫ
         </h4>
 
-        <table className="w-full border-collapse border border-black text-xs mb-4">
+        {/* Metadata Bullets */}
+        <div className="text-xs space-y-1 mb-3 font-semibold">
+          <div>• <span className="font-bold">የሠራተኛው ሙሉ ስም:-</span> {metadata.empName}</div>
+          <div>• <span className="font-bold">የሥራ ክፍሉ:-</span> {metadata.empDept}</div>
+          <div>• <span className="font-bold">ሥራ መደቡ:-</span> {metadata.empPosition}</div>
+          <div>• <span className="font-bold">የአፈፃፀም ምዘናው ጊዜ :-</span> {metadata.evalPeriod}</div>
+          <div>• <span className="font-bold">የአፈፃፀም ምዘናው ውጤት መግለጫ--------------------------------------------------------------------------------</span></div>
+        </div>
+
+        <table className="w-full border-collapse border border-black text-xs mb-6">
           <thead className="bg-slate-100 font-bold text-center">
             <tr>
               <th className="border border-black p-2 w-1/4" rowSpan={2}>የምዘና ጊዜያት</th>
-              <th className="border border-black p-2" colSpan={4}>የውጤት ተኮር ዕቅድ አፈጻጸም</th>
+              <th className="border border-black p-2" colSpan={4}>የውጤት ተኮር እቅድ አፈፃፀም</th>
             </tr>
             <tr>
-              <th className="border border-black p-1.5 w-1/5">አፈጻጸም ከዕቅድ ጋር (60%)</th>
-              <th className="border border-black p-1.5 w-1/5">የባህሪያት አፈጻጸም (40%)</th>
-              <th className="border border-black p-1.5 w-1/5">ድምር ከ 100%</th>
-              <th className="border border-black p-1.5 w-1/5">የአፈጻጸም ደረጃ</th>
+              <th className="border border-black p-1.5 w-1/5">አፈፃፀም ከእቅድ ጋር በማነፃፀር(60%)</th>
+              <th className="border border-black p-1.5 w-1/4">ሥራዎች በሚከናወኑበት ሂደት አስፈላጊ የሆኑ ባህሪያት አፈፃፀም (40%)</th>
+              <th className="border border-black p-1.5 w-20">ድምር ከ 100 %</th>
+              <th className="border border-black p-1.5 w-20">የአፈፃፀም ደረጃ</th>
             </tr>
           </thead>
           <tbody>
             <tr className="text-center font-bold">
               <td className="border border-black p-2 font-semibold">
-                {metadata.evalPeriod || 'የአጋማሽ ዓመት የተጠቃለለ አፈጻጸም'}
+                የግማሽ ዓመት የተጠቃለለ አፈፃፀም
               </td>
-              <td className="border border-black p-2 font-mono">{grandTaskScore.toFixed(2)}</td>
-              <td className="border border-black p-2 font-mono">{grandCompScore.toFixed(2)}</td>
-              <td className="border border-black p-2 font-mono text-sm">{grandTotal.toFixed(2)}%</td>
+              <td className="border border-black p-2 font-mono">
+                {Number.isInteger(grandTaskScore) ? grandTaskScore : grandTaskScore.toFixed(1)}
+              </td>
+              <td className="border border-black p-2 font-mono">
+                {Number.isInteger(grandCompScore) ? grandCompScore : grandCompScore.toFixed(1)}
+              </td>
+              <td className="border border-black p-2 font-mono text-sm">
+                {Number.isInteger(grandTotal) ? grandTotal : grandTotal.toFixed(1)}
+              </td>
               <td className="border border-black p-2 text-sm">{grade.levelAm}</td>
             </tr>
           </tbody>
         </table>
 
-        {/* Narrative comments */}
-        <div className="border border-black p-3 text-xs mb-4">
-          <strong className="block mb-1">የቅርብ ኃላፊው አስተያየት (የታዩ ጠንካራ ጎኖችና ቀጣይ ድጋፍ)፡</strong>
-          <p className="min-h-[40px] italic">
-            {supervisorComments || 'ምንም ተጨማሪ አስተያየት አልተሰጠም።'}
-          </p>
-        </div>
-
-        <div className="border border-black p-3 text-xs mb-6">
-          <strong className="block mb-1">የሰራተኛው አስተያየት እና ምላሽ፡</strong>
-          <p className="min-h-[40px] italic">
-            {employeeComments || 'ሰራተኛው በምዘናው ውጤት ላይ ሙሉ ስምምነት አለው።'}
-          </p>
-        </div>
-
-        {/* Formal Signatures and Approval Stamp */}
-        <div className="grid grid-cols-2 gap-8 pt-4 border-t-2 border-black text-xs">
-          <div className="space-y-3">
-            <p><strong>የቅርብ ኃላፊው ሙሉ ስም፡</strong> {metadata.supervisorName || '____________________'}</p>
-            <p><strong>ፊርማ፡</strong> {supervisorSigned ? '✓ በስርዓቱ የተረጋገጠ (Electronically Signed)' : '________________________'}</p>
-            <p><strong>ቀን፡</strong> {supervisorSignDate || metadata.evalDate || '________________________'}</p>
+        {/* Formal Signatures (as in the official document) */}
+        <div className="space-y-4 pt-2 text-xs font-semibold">
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="font-bold">የቅርብ ኃላፊው ሙሉ ስም:</span> {metadata.supervisorName || 'ምንዳዬ ሀይሌ'}
+            </div>
+            <div>
+              <span>ፊርማ -------------------</span>
+              <span className="ml-4 font-bold">ቀን</span> {supervisorSignDate || metadata.evalDate || '2018-06-30'}
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <p><strong>የሰራተኛው ሙሉ ስም፡</strong> {metadata.empName || '____________________'}</p>
-            <p><strong>ፊርማ፡</strong> {employeeSigned ? '✓ በስርዓቱ የተረጋገጠ (Electronically Signed)' : '________________________'}</p>
-            <p><strong>ቀን፡</strong> {employeeSignDate || metadata.evalDate || '________________________'}</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="font-bold">የሠራተኛው ስም:</span> {metadata.empName || 'ሊዲያ ግሩም ገብረስላሴ'}
+            </div>
+            <div>
+              <span>ፊርማ -------------------</span>
+              <span className="ml-4 font-bold">ቀን</span> {employeeSignDate || metadata.evalDate || '2018-06-30'}
+            </div>
           </div>
         </div>
 

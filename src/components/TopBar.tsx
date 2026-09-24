@@ -4,6 +4,7 @@ import {
   Menu, 
   Save, 
   Printer, 
+  Trash2,
   CheckCircle2, 
   Languages, 
   ChevronRight,
@@ -18,6 +19,7 @@ interface TopBarProps {
   onToggleSidebarMobile: () => void;
   onSave: () => void;
   onPrint: () => void;
+  onDelete?: () => void;
   isSavedToast: boolean;
   totalScore: number;
 }
@@ -29,6 +31,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onToggleSidebarMobile,
   onSave,
   onPrint,
+  onDelete,
   isSavedToast,
   totalScore
 }) => {
@@ -109,6 +112,18 @@ export const TopBar: React.FC<TopBarProps> = ({
               {lang === 'am' ? grade.levelAm : grade.levelEn}
             </span>
           </div>
+
+          {/* Delete Button (ሰርዝ) - Works on any active page */}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition cursor-pointer shadow-2xs"
+              title={lang === 'am' ? 'ሰርዝ' : 'Delete'}
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span className="hidden sm:inline">{lang === 'am' ? 'ሰርዝ' : 'Delete'}</span>
+            </button>
+          )}
 
           {/* Save Button */}
           <button

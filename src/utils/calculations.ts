@@ -1,4 +1,5 @@
-import { TaskCategory, CompetencyItem, PerformanceGrade } from '../types/appraisal';
+import { TaskCategory, CompetencyItem, PerformanceGrade, Criterion } from '../types/appraisal';
+import { EvaluationCategoryItem } from '../types/jobDescription';
 
 export interface CriterionCalculation {
   maxProduct: number;
@@ -108,4 +109,88 @@ export function getPerformanceGrade(score: number): PerformanceGrade {
     borderClass: 'border-rose-300 dark:border-rose-800',
     minScore: 0
   };
+}
+
+/**
+ * Automatically divides a subtask's total weight into its criteria (such as Quality / Time)
+ * following the standard Ethiopian civil service 60/40 distribution.
+ */
+export function divideWeightIntoCriteria(
+  totalWeight: number,
+  criteria: Criterion[]
+): Criterion[] {
+  const w = Math.max(0, Number(totalWeight) || 0);
+  if (criteria.length <= 1) {
+    return criteria.map((c) => ({ ...c, weight: w }));
+  }
+
+  if (criteria.length === 2) {
+    let qWeight = Math.ceil(w / 2);
+    if (w === 3) qWeight = 2;
+    else if (w === 5) qWeight = 3;
+    else if (w === 6) qWeight = 4;
+    else if (w === 7) qWeight = 4;
+    else if (w === 8) qWeight = 5;
+    else if (w === 1) qWeight = 1;
+    else if (w % 2 !== 0) qWeight = Math.ceil(w * 0.55);
+    const tWeight = Number((w - qWeight).toFixed(2));
+
+    return criteria.map((c, idx) => ({
+      ...c,
+      weight: idx === 0 ? qWeight : Math.max(0, tWeight)
+    }));
+  }
+
+  const base = Math.floor((w / criteria.length) * 10) / 10;
+  const remainder = Number((w - base * criteria.length).toFixed(2));
+  return criteria.map((c, idx) => ({
+    ...c,
+    weight: idx === 0 ? Number((base + remainder).toFixed(2)) : base
+  }));
+}
+
+/**
+ * Converts the official civil service evaluation task tables (such as Database, System, and Network)
+ * into TaskCategory[] objects for real-time appraisal scoring.
+ */
+export function convertEvaluationTableToTaskCategories(
+  evalTable: EvaluationCategoryItem[],
+  defaultRating: 1 | 2 | 3 | 4 = 4
+): TaskCategory[] {
+  return evalTable.map((cat) => ({
+    id: cat.no,
+    title: cat.expectedResult,
+    weight: cat.weight,
+    subtasks: cat.tasks.map((task) => {
+      const w = task.weight;
+      let criteria: Criterion[] = [];
+      if (w >= 4) {
+        const qWeight = Math.ceil(w / 2);
+        const tWeight = w - qWeight;
+        criteria = [
+          { id: `${task.code}-q`, type: 'ጥራት', weight: qWeight, rating: defaultRating },
+          { id: `${task.code}-t`, type: 'ጊዜ', weight: tWeight, rating: defaultRating }
+        ];
+      } else if (w === 3) {
+        criteria = [
+          { id: `${task.code}-q`, type: 'ጥራት', weight: 2, rating: defaultRating },
+          { id: `${task.code}-t`, type: 'ጊዜ', weight: 1, rating: defaultRating }
+        ];
+      } else if (w === 2) {
+        criteria = [
+          { id: `${task.code}-q`, type: 'ጥራት', weight: 1, rating: defaultRating },
+          { id: `${task.code}-t`, type: 'ጊዜ', weight: 1, rating: defaultRating }
+        ];
+      } else {
+        criteria = [
+          { id: `${task.code}-q`, type: 'ጥራት', weight: 1, rating: defaultRating }
+        ];
+      }
+      return {
+        subId: task.code,
+        desc: task.description,
+        criteria
+      };
+    })
+  }));
 }
