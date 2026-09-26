@@ -17,8 +17,10 @@ import {
   UserCheck,
   Building2,
   ExternalLink,
-  Users
+  Users,
+  LogOut
 } from 'lucide-react';
+import { AuthUser } from '../types/auth';
 
 interface SidebarProps {
   currentModule: 'dashboard' | 'appraisal' | 'monthly' | 'jobs' | 'employees';
@@ -35,6 +37,8 @@ interface SidebarProps {
   jobsCount?: number;
   activeRecord: AppraisalRecord;
   totalScore: number;
+  currentUser?: AuthUser | null;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -51,7 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   employeesCount = 6,
   jobsCount = 7,
   activeRecord,
-  totalScore
+  totalScore,
+  currentUser,
+  onLogout
 }) => {
   const t = translations[lang];
   const grade = getPerformanceGrade(totalScore);
@@ -271,6 +277,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Logged in User & Logout */}
+          {currentUser && (
+            <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-md bg-blue-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                  {currentUser.role === 'admin' ? 'A' : 'U'}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-xs font-bold text-white block truncate leading-tight">
+                    {lang === 'am' ? (currentUser.role === 'admin' ? 'አስተዳዳሪ (Admin)' : currentUser.nameAm) : (currentUser.role === 'admin' ? 'Administrator' : currentUser.nameEn)}
+                  </span>
+                  <span className="text-[10px] text-blue-400 font-semibold block truncate">
+                    {currentUser.role === 'admin' ? (lang === 'am' ? 'ሙሉ አስተዳዳሪ' : 'Super Admin') : currentUser.role}
+                  </span>
+                </div>
+              </div>
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition cursor-pointer"
+                  title={lang === 'am' ? 'ውጣ (Logout)' : 'Logout'}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </aside>
     </>

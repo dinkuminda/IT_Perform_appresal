@@ -35,6 +35,9 @@ import { DashboardView } from './components/DashboardView';
 import { MonthlyReportView } from './components/MonthlyReportView';
 import { JobDescriptionView } from './components/JobDescriptionView';
 import { EmployeeModuleView } from './components/EmployeeModuleView';
+import { DatabaseSchemaModal } from './components/DatabaseSchemaModal';
+import { LoginPage } from './components/LoginPage';
+import { AuthUser } from './types/auth';
 
 import { 
   Briefcase, 
@@ -57,8 +60,29 @@ export default function App() {
   const [currentModule, setCurrentModule] = useState<'dashboard' | 'appraisal' | 'monthly' | 'jobs' | 'employees'>('dashboard');
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
   const [isSavedToast, setIsSavedToast] = useState(false);
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
+
+  // User Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    try {
+      const stored = localStorage.getItem('auth_user_session') || sessionStorage.getItem('auth_user_session');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.username) return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading auth session', e);
+    }
+    return null;
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_user_session');
+    sessionStorage.removeItem('auth_user_session');
+    setCurrentUser(null);
+  };
 
   // Initialize saved records from localStorage
   const [savedRecords, setSavedRecords] = useState<AppraisalRecord[]>(() => {
@@ -549,6 +573,18 @@ export default function App() {
     setIsArchiveOpen(false);
   };
 
+  // If user is not authenticated, display the Login Page
+  if (!currentUser) {
+    return (
+      <LoginPage
+        onLoginSuccess={(user) => setCurrentUser(user)}
+        employees={employees}
+        lang={lang}
+        onToggleLang={() => setLang(lang === 'am' ? 'en' : 'am')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100/70 text-slate-800 flex">
       {/* Institutional Sidebar Navigation */}
@@ -567,6 +603,8 @@ export default function App() {
         jobsCount={jobDescriptions.length}
         activeRecord={currentRecord}
         totalScore={totalScore}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area Container */}
@@ -579,6 +617,9 @@ export default function App() {
           onSave={handleManualSave}
           onPrint={() => window.print()}
           onDelete={handleDeleteCurrentPage}
+          onOpenDatabaseSchema={() => setIsDatabaseModalOpen(true)}
+          currentUser={currentUser}
+          onLogout={handleLogout}
           isSavedToast={isSavedToast}
           totalScore={totalScore}
         />
@@ -609,6 +650,7 @@ export default function App() {
             onDeleteEmployee={handleDeleteEmployee}
             onStartAppraisalForEmployee={handleStartAppraisalForEmployee}
             onStartReportForEmployee={handleStartReportForEmployee}
+            currentUser={currentUser}
             lang={lang}
           />
         )}
@@ -619,6 +661,7 @@ export default function App() {
             reports={monthlyReports}
             onSaveReport={handleSaveMonthlyReport}
             onDeleteReport={handleDeleteMonthlyReport}
+            currentUser={currentUser}
             lang={lang}
           />
         )}
@@ -632,6 +675,7 @@ export default function App() {
             onUpdateJobDescription={handleUpdateJobDescription}
             onDeleteJobDescription={handleDeleteJobDescription}
             onRestoreDefaultJobDescriptions={handleRestoreDefaultJobDescriptions}
+            currentUser={currentUser}
             lang={lang}
           />
         )}
@@ -747,6 +791,13 @@ export default function App() {
 
       {/* Dedicated Print View (Rendered only on window.print()) */}
       <PrintDocument record={currentRecord} />
+
+      {/* PostgreSQL Database Schema & Vercel Guide Modal */}
+      <DatabaseSchemaModal
+        isOpen={isDatabaseModalOpen}
+        onClose={() => setIsDatabaseModalOpen(false)}
+        lang={lang}
+      />
     </div>
   );
 }

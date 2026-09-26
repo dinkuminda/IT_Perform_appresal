@@ -5,6 +5,7 @@ import { MonthlyReport } from '../types/monthlyReport';
 import { JobDescription } from '../types/jobDescription';
 import { Language } from '../utils/i18n';
 import { OFFICIAL_STAFF_POSITIONS } from '../data/officialStaffPositions';
+import { AuthUser } from '../types/auth';
 import { 
   Users, 
   Search, 
@@ -42,6 +43,7 @@ interface EmployeeModuleViewProps {
   onDeleteEmployee: (id: string) => void;
   onStartAppraisalForEmployee: (emp: Employee) => void;
   onStartReportForEmployee: (emp: Employee) => void;
+  currentUser?: AuthUser | null;
   lang: Language;
 }
 
@@ -55,8 +57,11 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
   onDeleteEmployee,
   onStartAppraisalForEmployee,
   onStartReportForEmployee,
+  currentUser,
   lang
 }) => {
+  const isStaff = currentUser?.role === 'employee';
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -97,16 +102,45 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
 
   const [formData, setFormData] = useState<Omit<Employee, 'id'>>(initialFormData);
 
+  // Visible Employees (Staff sees only their own profile)
+  const visibleEmployees = useMemo(() => {
+    if (isStaff && currentUser) {
+      const qId = (currentUser.employeeId || '').toLowerCase();
+      const qNameAm = (currentUser.nameAm || '').toLowerCase();
+      const qNameEn = (currentUser.nameEn || '').toLowerCase();
+      const qEmail = (currentUser.email || '').toLowerCase();
+
+      const matched = employees.filter((emp) => {
+        const empId = (emp.employeeId || '').toLowerCase();
+        const empNameAm = (emp.fullNameAm || '').toLowerCase();
+        const empNameEn = (emp.fullNameEn || '').toLowerCase();
+        const empEmail = (emp.email || '').toLowerCase();
+
+        return (
+          emp.id === currentUser.id ||
+          (qId && empId === qId) ||
+          (qNameAm && (empNameAm.includes(qNameAm) || qNameAm.includes(empNameAm))) ||
+          (qNameEn && (empNameEn.includes(qNameEn) || qNameEn.includes(empNameEn))) ||
+          (qEmail && empEmail === qEmail)
+        );
+      });
+
+      if (matched.length > 0) return matched;
+      return employees.slice(0, 1);
+    }
+    return employees;
+  }, [employees, currentUser, isStaff]);
+
   // Extract unique teams
   const teamsList = useMemo(() => {
     const set = new Set<string>();
-    employees.forEach((e) => set.add(e.teamAm));
+    visibleEmployees.forEach((e) => set.add(e.teamAm));
     return Array.from(set);
-  }, [employees]);
+  }, [visibleEmployees]);
 
   // Filtered employees
   const filteredEmployees = useMemo(() => {
-    return employees.filter((emp) => {
+    return visibleEmployees.filter((emp) => {
       const matchesSearch = 
         emp.fullNameAm.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.fullNameEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -119,17 +153,17 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
 
       return matchesSearch && matchesTeam && matchesStatus;
     });
-  }, [employees, searchTerm, selectedTeam, selectedStatus]);
+  }, [visibleEmployees, searchTerm, selectedTeam, selectedStatus]);
 
   // KPI Calculations
   const stats = useMemo(() => {
-    const total = employees.length;
-    const permanent = employees.filter((e) => e.employmentType === 'ቋሚ' || e.employmentType === 'Permanent').length;
+    const total = visibleEmployees.length;
+    const permanent = visibleEmployees.filter((e) => e.employmentType === 'ቋሚ' || e.employmentType === 'Permanent').length;
     const contract = total - permanent;
-    const active = employees.filter((e) => e.status === 'active').length;
-    const withCerts = employees.filter((e) => e.certifications && e.certifications.length > 0).length;
+    const active = visibleEmployees.filter((e) => e.status === 'active').length;
+    const withCerts = visibleEmployees.filter((e) => e.certifications && e.certifications.length > 0).length;
     return { total, permanent, contract, active, withCerts };
-  }, [employees]);
+  }, [visibleEmployees]);
 
   // Open Add modal
   const handleOpenAdd = () => {
@@ -222,23 +256,27 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
               <span>{lang === 'am' ? 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት' : 'IT Administration Directorate'}</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {lang === 'am' ? 'የባለሙያዎችና ሰራተኞች ማውጫ' : 'Staff Directory & Profiles'}
+              {isStaff
+                ? (lang === 'am' ? 'የእኔ የግል ፕሮፋይልና የስራ መረጃ' : 'My Personal Staff Profile')
+                : (lang === 'am' ? 'የባለሙያዎችና ሰራተኞች ማውጫ' : 'Staff Directory & Profiles')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              {lang === 'am' 
-                ? 'በዳይሬክቶሬቱ ስር ያሉ የቴክኒክና የአስተዳደር ባለሙያዎች ዝርዝር፣ የሥራ ደረጃ፣ አድራሻ እና የውጤት ታሪክ' 
-                : 'Manage technical and administrative staff profiles, positions, certifications, and performance records.'}
+              {isStaff
+                ? (lang === 'am' ? 'የእርስዎ የስራ መደብ፣ የትምህርት ዝርዝር፣ ሰርተፊኬቶችና የውጤት ታሪክ' : 'Your official job level, qualifications, certifications, and appraisal records.')
+                : (lang === 'am' ? 'በዳይሬክቶሬቱ ስር ያሉ የቴክኒክና የአስተዳደር ባለሙያዎች ዝርዝር፣ የሥራ ደረጃ፣ አድራሻ እና የውጤት ታሪክ' : 'Manage technical and administrative staff profiles, positions, certifications, and performance records.')}
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button
-              onClick={handleOpenAdd}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{lang === 'am' ? 'አዲስ ሰራተኛ መዝግብ' : 'Add New Staff'}</span>
-            </button>
+            {!isStaff && (
+              <button
+                onClick={handleOpenAdd}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{lang === 'am' ? 'አዲስ ሰራተኛ መዝግብ' : 'Add New Staff'}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -493,20 +531,24 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => handleOpenEdit(emp)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
-                      title={lang === 'am' ? 'መረጃ አሻሽል' : 'Edit Profile'}
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDeleteEmployee(emp.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                      title={lang === 'am' ? 'ሰርዝ' : 'Delete'}
-                    >
-                      <Trash2 className="w-4 h-4 text-rose-500" />
-                    </button>
+                    {!isStaff && (
+                      <>
+                        <button
+                          onClick={() => handleOpenEdit(emp)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
+                          title={lang === 'am' ? 'መረጃ አሻሽል' : 'Edit Profile'}
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteEmployee(emp.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                          title={lang === 'am' ? 'ሰርዝ' : 'Delete'}
+                        >
+                          <Trash2 className="w-4 h-4 text-rose-500" />
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -589,20 +631,24 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleOpenEdit(emp)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50"
-                          title="አሻሽል"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteEmployee(emp.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                          title={lang === 'am' ? 'ሰርዝ' : 'Delete'}
-                        >
-                          <Trash2 className="w-4 h-4 text-rose-500" />
-                        </button>
+                        {!isStaff && (
+                          <>
+                            <button
+                              onClick={() => handleOpenEdit(emp)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50"
+                              title="አሻሽል"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => onDeleteEmployee(emp.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                              title={lang === 'am' ? 'ሰርዝ' : 'Delete'}
+                            >
+                              <Trash2 className="w-4 h-4 text-rose-500" />
+                            </button>
+                          </>
+                        )}
                         <button
                           onClick={() => onStartAppraisalForEmployee(emp)}
                           className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white"

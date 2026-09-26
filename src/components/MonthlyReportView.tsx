@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { MonthlyReport, MonthlyTaskItem, EthiopianMonth } from '../types/monthlyReport';
 import { Language } from '../utils/i18n';
+import { AuthUser } from '../types/auth';
 import { 
   CalendarDays, 
   Plus, 
@@ -20,6 +21,7 @@ interface MonthlyReportViewProps {
   reports: MonthlyReport[];
   onSaveReport: (report: MonthlyReport) => void;
   onDeleteReport?: (id: string) => void;
+  currentUser?: AuthUser | null;
   lang: Language;
 }
 
@@ -31,16 +33,34 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
   reports,
   onSaveReport,
   onDeleteReport,
+  currentUser,
   lang
 }) => {
-  const [selectedReportId, setSelectedReportId] = useState<string>(reports[0]?.id || '');
-  const [currentReport, setCurrentReport] = useState<MonthlyReport>(reports[0] || {
+  const isStaff = currentUser?.role === 'employee';
+
+  // Filter reports: staff only sees their own reports
+  const visibleReports = useMemo(() => {
+    if (isStaff && currentUser) {
+      const qId = (currentUser.employeeId || '').toLowerCase();
+      const qNameAm = (currentUser.nameAm || '').toLowerCase();
+      const qNameEn = (currentUser.nameEn || '').toLowerCase();
+
+      return reports.filter((r) => {
+        const rId = (r.employeeId || '').toLowerCase();
+        const rName = (r.employeeName || '').toLowerCase();
+        return (qId && rId === qId) || (qNameAm && rName.includes(qNameAm)) || (qNameEn && rName.includes(qNameEn));
+      });
+    }
+    return reports;
+  }, [reports, currentUser, isStaff]);
+
+  const createInitialStaffReport = (): MonthlyReport => ({
     id: `rep-${Date.now()}`,
-    employeeId: 'ICS-IT-0482',
-    employeeName: 'ሊዲያ ግሩም ገብረስላሴ',
-    position: 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII',
-    department: 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት',
-    supervisorName: 'ምንዳዬ ሀይሌ',
+    employeeId: (isStaff && currentUser?.employeeId) ? currentUser.employeeId : 'ICS-IT-0482',
+    employeeName: (isStaff && currentUser) ? currentUser.nameAm : 'ሊዲያ ግሩም ገብረስላሴ',
+    position: (isStaff && currentUser) ? currentUser.positionAm : 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII',
+    department: (isStaff && currentUser) ? currentUser.department : 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት',
+    supervisorName: 'ምንዳዬ ሀይሌ (የቡድን መሪ)',
     year: 2018,
     month: 'ሰኔ',
     reportDate: new Date().toISOString().split('T')[0],
@@ -56,6 +76,29 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
     status: 'draft'
   });
 
+  const [selectedReportId, setSelectedReportId] = useState<string>(
+    visibleReports[0]?.id || ''
+  );
+  const [currentReport, setCurrentReport] = useState<MonthlyReport>(
+    visibleReports[0] || createInitialStaffReport()
+  );
+
+  useEffect(() => {
+    if (visibleReports.length > 0) {
+      const exists = visibleReports.find(r => r.id === selectedReportId);
+      if (exists) {
+        setCurrentReport(exists);
+      } else {
+        setSelectedReportId(visibleReports[0].id);
+        setCurrentReport(visibleReports[0]);
+      }
+    } else if (isStaff) {
+      const template = createInitialStaffReport();
+      setCurrentReport(template);
+      setSelectedReportId(template.id);
+    }
+  }, [visibleReports, isStaff]);
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const handleSelectReport = (r: MonthlyReport) => {
@@ -66,11 +109,11 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
   const handleCreateNewReport = () => {
     const newRep: MonthlyReport = {
       id: `rep-${Date.now()}`,
-      employeeId: currentReport.employeeId || 'ICS-IT-0482',
-      employeeName: currentReport.employeeName || 'ሊዲያ ግሩም ገብረስላሴ',
-      position: currentReport.position || 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII',
-      department: currentReport.department || 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት',
-      supervisorName: currentReport.supervisorName || 'ምንዳዬ ሀይሌ',
+      employeeId: (isStaff && currentUser?.employeeId) ? currentUser.employeeId : (currentReport.employeeId || 'ICS-IT-0482'),
+      employeeName: (isStaff && currentUser) ? currentUser.nameAm : (currentReport.employeeName || 'ሊዲያ ግሩም ገብረስላሴ'),
+      position: (isStaff && currentUser) ? currentUser.positionAm : (currentReport.position || 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII'),
+      department: (isStaff && currentUser) ? currentUser.department : (currentReport.department || 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት'),
+      supervisorName: currentReport.supervisorName || 'ምንዳዬ ሀይሌ (የቡድን መሪ)',
       year: 2018,
       month: 'ሰኔ',
       reportDate: new Date().toISOString().split('T')[0],
@@ -173,12 +216,18 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
             <span>{lang === 'am' ? 'ወርሃዊ የሥራ አፈጻጸም ሪፖርት ማጠቃለያ' : 'Monthly Employee Activity & Progress Report'}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            {lang === 'am' ? 'ወርሃዊ የሰራተኛ ክትትልና አፈጻጸም ሪፖርት' : 'Monthly Employee Performance Tracking'}
+            {isStaff
+              ? (lang === 'am' ? 'የእኔ ወርሃዊ የሥራ አፈጻጸም ሪፖርት' : 'My Monthly Performance Report')
+              : (lang === 'am' ? 'ወርሃዊ የሰራተኛ ክትትልና አፈጻጸም ሪፖርት' : 'Monthly Employee Performance Tracking')}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
-            {lang === 'am'
-              ? 'በየወሩ የታቀዱ ተግባራት፣ የተገኙ ውጤቶች፣ ያጋጠሙ ተግዳሮቶችና የቅርብ ኃላፊ ምዘና መመዝገቢያ ቅጽ።'
-              : 'Log and track monthly outputs, tasks accomplished vs planned, bottlenecks, and supervisor endorsements.'}
+            {isStaff
+              ? (lang === 'am'
+                  ? 'የእርስዎ በየወሩ የታቀዱ ተግባራት፣ የተገኙ ውጤቶች፣ ያጋጠሙ ተግዳሮቶችና የቅርብ ኃላፊ ምዘና መመዝገቢያ ቅጽ።'
+                  : 'Log and track your monthly outputs, completed tasks, and view supervisor endorsements.')
+              : (lang === 'am'
+                  ? 'በየወሩ የታቀዱ ተግባራት፣ የተገኙ ውጤቶች፣ ያጋጠሙ ተግዳሮቶችና የቅርብ ኃላፊ ምዘና መመዝገቢያ ቅጽ።'
+                  : 'Log and track monthly outputs, tasks accomplished vs planned, bottlenecks, and supervisor endorsements.')}
           </p>
         </div>
 
@@ -216,20 +265,22 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
       </div>
 
       {/* Saved Reports Selector Strip with Delete Action */}
-      {reports.length > 1 && (
+      {visibleReports.length > 0 && (
         <div className="flex items-center gap-2 bg-white border border-slate-200 p-2.5 rounded-xl text-xs shadow-2xs">
           <span className="font-bold text-slate-600 shrink-0">
-            {lang === 'am' ? 'የተመዘገቡ ወርሃዊ ሪፖርቶች:' : 'Saved Monthly Reports:'}
+            {isStaff
+              ? (lang === 'am' ? 'የእኔ ወርሃዊ ሪፖርቶች:' : 'My Monthly Reports:')
+              : (lang === 'am' ? 'የተመዘገቡ ወርሃዊ ሪፖርቶች:' : 'Saved Monthly Reports:')}
           </span>
           <select
             value={currentReport.id}
             onChange={(e) => {
-              const found = reports.find((r) => r.id === e.target.value);
+              const found = visibleReports.find((r) => r.id === e.target.value);
               if (found) handleSelectReport(found);
             }}
             className="flex-1 bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-semibold text-slate-800"
           >
-            {reports.map((r) => (
+            {visibleReports.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.employeeName || 'ያልተሰየመ'} ({r.month} {r.year} ዓ.ም) - {r.tasks?.length || 0} ተግባራት
               </option>
@@ -264,9 +315,10 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
             </label>
             <input
               type="text"
+              readOnly={isStaff}
               value={currentReport.employeeName}
               onChange={(e) => setCurrentReport({ ...currentReport, employeeName: e.target.value })}
-              className="w-full p-2 bg-white rounded-lg border border-slate-300 font-semibold"
+              className={`w-full p-2 rounded-lg border border-slate-300 font-semibold ${isStaff ? 'bg-slate-100 text-slate-800 cursor-not-allowed' : 'bg-white'}`}
             />
           </div>
 
@@ -276,9 +328,10 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
             </label>
             <input
               type="text"
+              readOnly={isStaff}
               value={currentReport.employeeId}
               onChange={(e) => setCurrentReport({ ...currentReport, employeeId: e.target.value })}
-              className="w-full p-2 bg-white rounded-lg border border-slate-300 font-mono"
+              className={`w-full p-2 rounded-lg border border-slate-300 font-mono ${isStaff ? 'bg-slate-100 text-slate-800 cursor-not-allowed' : 'bg-white'}`}
             />
           </div>
 
@@ -508,8 +561,12 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
                 {[1, 2, 3, 4].map((star) => (
                   <button
                     key={star}
+                    type="button"
+                    disabled={isStaff}
                     onClick={() => setCurrentReport({ ...currentReport, supervisorRating: star })}
-                    className={`w-7 h-7 rounded flex items-center justify-center font-bold text-xs transition cursor-pointer ${
+                    className={`w-7 h-7 rounded flex items-center justify-center font-bold text-xs transition ${
+                      isStaff ? 'cursor-not-allowed' : 'cursor-pointer'
+                    } ${
                       currentReport.supervisorRating >= star
                         ? 'bg-amber-400 text-amber-950 font-black'
                         : 'bg-white text-slate-400 border border-slate-300'
@@ -524,26 +581,47 @@ export const MonthlyReportView: React.FC<MonthlyReportViewProps> = ({
 
           <textarea
             rows={2}
+            readOnly={isStaff}
             value={currentReport.supervisorComments}
             onChange={(e) => setCurrentReport({ ...currentReport, supervisorComments: e.target.value })}
-            placeholder={lang === 'am' ? 'የኃላፊው ወርሃዊ ግምገማና የቀጣይ አቅጣጫ ማስታወሻ...' : 'Supervisor feedback and performance comments...'}
-            className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs"
+            placeholder={
+              isStaff
+                ? (lang === 'am' ? 'የቅርብ ኃላፊው አስተያየት እዚህ ይታያል...' : 'Supervisor feedback will appear here...')
+                : (lang === 'am' ? 'የኃላፊው ወርሃዊ ግምገማና የቀጣይ አቅጣጫ ማስታወሻ...' : 'Supervisor feedback and performance comments...')
+            }
+            className={`w-full p-2.5 rounded-lg border border-slate-300 text-xs ${isStaff ? 'bg-slate-100 text-slate-700 cursor-not-allowed' : 'bg-white'}`}
           />
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-blue-100 text-xs">
-            <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
-              <input
-                type="checkbox"
-                checked={currentReport.supervisorSigned}
-                onChange={(e) => setCurrentReport({ 
-                  ...currentReport, 
-                  supervisorSigned: e.target.checked,
-                  status: e.target.checked ? 'approved' : 'draft'
-                })}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-              />
-              <span>{lang === 'am' ? 'በቅርብ ኃላፊው በይፋ ተረጋግጧል (Supervisor Verified & Approved)' : 'Supervisor Endorsed'}</span>
-            </label>
+            <div className="flex flex-wrap items-center gap-5">
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={currentReport.employeeSigned}
+                  onChange={(e) => setCurrentReport({ 
+                    ...currentReport, 
+                    employeeSigned: e.target.checked
+                  })}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                />
+                <span>{lang === 'am' ? 'በሰራተኛው ተፈርሟል (Employee Signed)' : 'Employee Signed'}</span>
+              </label>
+
+              <label className={`flex items-center gap-2 font-bold text-slate-800 ${isStaff ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <input
+                  type="checkbox"
+                  disabled={isStaff}
+                  checked={currentReport.supervisorSigned}
+                  onChange={(e) => setCurrentReport({ 
+                    ...currentReport, 
+                    supervisorSigned: e.target.checked,
+                    status: e.target.checked ? 'approved' : 'draft'
+                  })}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                />
+                <span>{lang === 'am' ? 'በቅርብ ኃላፊው በይፋ ተረጋግጧል (Supervisor Verified & Approved)' : 'Supervisor Endorsed'}</span>
+              </label>
+            </div>
 
             <span className="text-slate-500 font-mono text-[11px]">
               {lang === 'am' ? 'የቀረበበት ቀን:' : 'Date:'} {currentReport.reportDate}

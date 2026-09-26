@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { AppraisalRecord } from '../types/appraisal';
 import { Language, translations } from '../utils/i18n';
 import { calculateTotalTaskScore, calculateTotalCompetencyScore, getPerformanceGrade } from '../utils/calculations';
+import { AuthUser } from '../types/auth';
 import { 
   X, 
   FolderArchive, 

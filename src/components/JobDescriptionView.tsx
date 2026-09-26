@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { JobDescription } from '../types/jobDescription';
 import { Language } from '../utils/i18n';
+import { AuthUser } from '../types/auth';
 import { JobDescriptionModal } from './JobDescriptionModal';
 import { 
   Briefcase, 
@@ -33,6 +34,7 @@ interface JobDescriptionViewProps {
   onUpdateJobDescription?: (jd: JobDescription) => void;
   onDeleteJobDescription?: (id: string) => void;
   onRestoreDefaultJobDescriptions?: () => void;
+  currentUser?: AuthUser | null;
   lang: Language;
 }
 
@@ -43,11 +45,39 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
   onUpdateJobDescription,
   onDeleteJobDescription,
   onRestoreDefaultJobDescriptions,
+  currentUser,
   lang
 }) => {
+  const isStaff = currentUser?.role === 'employee';
+
+  const normalize = (str: string) => (str || '').replace(/ዎ/g, 'ወ').toLowerCase().trim();
+
+  // For staff: only show their own linked or matching Job Description
+  const visibleJds = useMemo(() => {
+    if (isStaff && currentUser) {
+      const qPos = normalize(currentUser.positionAm);
+      const qId = currentUser.linkedJobId;
+      const qLevel = normalize(currentUser.jobLevel || '');
+
+      const matched = jobDescriptions.filter((jd) => {
+        const jdTitle = normalize(jd.title);
+        const jdLevel = normalize(jd.level);
+
+        if (qId && jd.id === qId) return true;
+        if (qPos && (jdTitle === qPos || jdTitle.includes(qPos) || qPos.includes(jdTitle))) return true;
+        if (qLevel && jdLevel === qLevel && jd.department.includes(currentUser.department)) return true;
+        return false;
+      });
+
+      if (matched.length > 0) return matched;
+      return jobDescriptions.slice(0, 1);
+    }
+    return jobDescriptions;
+  }, [jobDescriptions, currentUser, isStaff]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('all');
-  const [selectedJdId, setSelectedJdId] = useState<string>(jobDescriptions[0]?.id || '');
+  const [selectedJdId, setSelectedJdId] = useState<string>(visibleJds[0]?.id || jobDescriptions[0]?.id || '');
   const [detailTab, setDetailTab] = useState<'evaluationTable' | 'specifications'>('evaluationTable');
   
   // Modal state for adding/editing
@@ -111,7 +141,7 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
 
   // Filtered Job Descriptions
   const filteredJds = useMemo(() => {
-    return jobDescriptions.filter((jd) => {
+    return visibleJds.filter((jd) => {
       const matchesSearch = 
         jd.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         jd.titleEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,7 +157,7 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
 
       return matchesSearch && matchesDept;
     });
-  }, [jobDescriptions, searchTerm, selectedDept]);
+  }, [visibleJds, searchTerm, selectedDept]);
 
   // Selected active JD
   const activeJd = useMemo(() => {
@@ -186,44 +216,54 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
             <span>{lang === 'am' ? 'የሥራ መደቦችና ይፋዊ የምዘና ሰንጠረዥ ሞጁል' : 'Job Descriptions & Official Evaluation Matrix'}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            {lang === 'am' ? 'የስራ ክፍሎች ይፋዊ የሥራ መደቦችና የምዘና መስፈርቶች (60%)' : 'Departmental Job Descriptions & 60% Evaluation Matrix'}
+            {isStaff
+              ? (lang === 'am' ? 'የእኔ ይፋዊ የሥራ መደብ መግለጫና የምዘና መስፈርት' : 'My Official Job Description & Matrix')
+              : (lang === 'am' ? 'የስራ ክፍሎች ይፋዊ የሥራ መደቦችና የምዘና መስፈርቶች (60%)' : 'Departmental Job Descriptions & 60% Evaluation Matrix')}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
-            {lang === 'am'
-              ? 'ለዳታቤዝ አስተዳደር፣ ለሲስተም አስተዳደር እና ለኔትዎርክ አስተዳደር የስራ ክፍሎች የተዘጋጁ ይፋዊ የውጤት ተኮር የምዘና ሰንጠረዦች (60 ነጥብ)፣ ዋና ዋና ተግባራት እና የብቃት መስፈርቶች። እንዲሁም አዲስ የስራ መደብ መመዝገብ ወይም ማስተካከል ይችላሉ።'
-              : 'Official civil service 60% result-oriented evaluation matrices, core responsibilities, and specifications for Database, Systems, and Network Administration departments. You can also register or remove Job Descriptions.'}
+            {isStaff
+              ? (lang === 'am'
+                  ? 'የእርስዎ የስራ መደብ ዋና ዋና ተግባራት (100%)፣ የውጤት ተኮር ምዘና ሰንጠረዥ (60%) እና የብቃት መመዘኛ መስፈርቶች።'
+                  : 'Your official 100% core duties, 60% result-oriented evaluation matrix, and qualification requirements.')
+              : (lang === 'am'
+                  ? 'ለዳታቤዝ አስተዳደር፣ ለሲስተም አስተዳደር እና ለኔትዎርክ አስተዳደር የስራ ክፍሎች የተዘጋጁ ይፋዊ የውጤት ተኮር የምዘና ሰንጠረዦች (60 ነጥብ)፣ ዋና ዋና ተግባራት እና የብቃት መስፈርቶች። እንዲሁም አዲስ የስራ መደብ መመዝገብ ወይም ማስተካከል ይችላሉ።'
+                  : 'Official civil service 60% result-oriented evaluation matrices, core responsibilities, and specifications for Database, Systems, and Network Administration departments. You can also register or remove Job Descriptions.')}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
-          <button
-            onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{lang === 'am' ? 'አዲስ የስራ መደብ መዝግብ' : 'Add New Job Description'}</span>
-          </button>
+          {!isStaff && (
+            <>
+              <button
+                onClick={handleOpenAddModal}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{lang === 'am' ? 'አዲስ የስራ መደብ መዝግብ' : 'Add New Job Description'}</span>
+              </button>
 
-          {activeJd && (
-            <button
-              onClick={() => handleDeleteJd(activeJd)}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
-              title={lang === 'am' ? 'የተመረጠውን የስራ መደብ ሰርዝ' : 'Delete selected Job Description'}
-            >
-              <Trash2 className="w-4 h-4 text-rose-600" />
-              <span>{lang === 'am' ? 'ይህንን መደብ ሰርዝ' : 'Delete'}</span>
-            </button>
-          )}
+              {activeJd && (
+                <button
+                  onClick={() => handleDeleteJd(activeJd)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                  title={lang === 'am' ? 'የተመረጠውን የስራ መደብ ሰርዝ' : 'Delete selected Job Description'}
+                >
+                  <Trash2 className="w-4 h-4 text-rose-600" />
+                  <span>{lang === 'am' ? 'ይህንን መደብ ሰርዝ' : 'Delete'}</span>
+                </button>
+              )}
 
-          {onRestoreDefaultJobDescriptions && (
-            <button
-              onClick={onRestoreDefaultJobDescriptions}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
-              title={lang === 'am' ? 'ነባር ይፋዊ የስራ መደቦችን ወደ መጀመሪያው ይዘት መልስ' : 'Restore Default Job Descriptions'}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{lang === 'am' ? 'ነባር መደቦች' : 'Restore'}</span>
-            </button>
+              {onRestoreDefaultJobDescriptions && (
+                <button
+                  onClick={onRestoreDefaultJobDescriptions}
+                  className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
+                  title={lang === 'am' ? 'ነባር ይፋዊ የስራ መደቦችን ወደ መጀመሪያው ይዘት መልስ' : 'Restore Default Job Descriptions'}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{lang === 'am' ? 'ነባር መደቦች' : 'Restore'}</span>
+                </button>
+              )}
+            </>
           )}
 
           <button
@@ -396,17 +436,19 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
                             አዲስ
                           </span>
                         )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteJd(jd);
-                          }}
-                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                          title={lang === 'am' ? 'ይህንን የስራ መደብ ሰርዝ' : 'Delete job position'}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isStaff && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteJd(jd);
+                            }}
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            title={lang === 'am' ? 'ይህንን የስራ መደብ ሰርዝ' : 'Delete job position'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -444,21 +486,25 @@ export const JobDescriptionView: React.FC<JobDescriptionViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleOpenEditModal(activeJd)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>{lang === 'am' ? 'አርትዕ' : 'Edit'}</span>
-                  </button>
+                  {!isStaff && (
+                    <>
+                      <button
+                        onClick={() => handleOpenEditModal(activeJd)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>{lang === 'am' ? 'አርትዕ' : 'Edit'}</span>
+                      </button>
 
-                  <button
-                    onClick={() => handleDeleteJd(activeJd)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                    <span>{lang === 'am' ? 'ሰርዝ' : 'Delete'}</span>
-                  </button>
+                      <button
+                        onClick={() => handleDeleteJd(activeJd)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span>{lang === 'am' ? 'ሰርዝ' : 'Delete'}</span>
+                      </button>
+                    </>
+                  )}
 
                   {onSelectJDToAppraisal && (
                     <button

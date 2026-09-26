@@ -8,9 +8,13 @@ import {
   CheckCircle2, 
   Languages, 
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  Database,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 import { getPerformanceGrade } from '../utils/calculations';
+import { AuthUser } from '../types/auth';
 
 interface TopBarProps {
   currentModule: 'dashboard' | 'appraisal' | 'monthly' | 'jobs' | 'employees';
@@ -20,6 +24,9 @@ interface TopBarProps {
   onSave: () => void;
   onPrint: () => void;
   onDelete?: () => void;
+  onOpenDatabaseSchema?: () => void;
+  currentUser?: AuthUser | null;
+  onLogout?: () => void;
   isSavedToast: boolean;
   totalScore: number;
 }
@@ -32,6 +39,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   onSave,
   onPrint,
   onDelete,
+  onOpenDatabaseSchema,
+  currentUser,
+  onLogout,
   isSavedToast,
   totalScore
 }) => {
@@ -113,6 +123,18 @@ export const TopBar: React.FC<TopBarProps> = ({
             </span>
           </div>
 
+          {/* Database Schema Button (Desktop & Vercel) */}
+          {onOpenDatabaseSchema && (
+            <button
+              onClick={onOpenDatabaseSchema}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition cursor-pointer"
+              title={lang === 'am' ? 'የPostgreSQL ስኪማና መመሪያ (Desktop/Vercel)' : 'PostgreSQL Schema & Guide (Desktop/Vercel)'}
+            >
+              <Database className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">{lang === 'am' ? 'ዳታቤዝ' : 'Database'}</span>
+            </button>
+          )}
+
           {/* Delete Button (ሰርዝ) - Works on any active page */}
           {onDelete && (
             <button
@@ -165,6 +187,39 @@ export const TopBar: React.FC<TopBarProps> = ({
             <Languages className="w-3.5 h-3.5 text-blue-600" />
             <span>{lang === 'am' ? 'EN' : 'አማ'}</span>
           </button>
+
+          {/* User Badge & Logout */}
+          {currentUser && (
+            <div className="flex items-center gap-1.5 pl-1 border-l border-slate-200">
+              <div 
+                className="hidden lg:flex items-center gap-2 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                title={`${currentUser.positionAm} • ${currentUser.department}`}
+              >
+                <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
+                  {currentUser.role === 'admin' ? 'A' : 'U'}
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-slate-800 leading-none truncate max-w-[120px]">
+                    {lang === 'am' ? (currentUser.role === 'admin' ? 'አስተዳዳሪ' : currentUser.nameAm) : (currentUser.role === 'admin' ? 'Admin' : currentUser.nameEn)}
+                  </div>
+                  <div className="text-[10px] text-blue-600 font-semibold leading-tight">
+                    {currentUser.role === 'admin' ? (lang === 'am' ? 'አድሚን' : 'Admin') : currentUser.role}
+                  </div>
+                </div>
+              </div>
+
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 transition cursor-pointer"
+                  title={lang === 'am' ? 'ከሲስተሙ ውጣ (Logout)' : 'Logout'}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{lang === 'am' ? 'ውጣ' : 'Logout'}</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>
