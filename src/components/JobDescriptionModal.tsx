@@ -38,6 +38,9 @@ interface JobDescriptionModalProps {
 
 // Standard Department Categories
 const CORE_IT_DEPARTMENTS = [
+  'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን',
+  'የቅርጫፍ_ኢንፎ_ቴክ_ድጋፍ_አስር ዲቪዥን',
+  'የኢንፎ_ቴክ_ድጋፍ_አገልግሎት_አስር ዲቪዥን',
   'የኔትዎርክ አስተዳደር (Network Administration)',
   'የዳታቤዝ አስተዳደር (Database Administration)',
   'የሲስተም አስተዳደር (System Administration)'
@@ -207,6 +210,34 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
         ]
   );
 
+  // Title Normalizer to handle ኔትወርክ vs ኔትዎርክ flexibly
+  const normalizeTitle = (str: string) =>
+    (str || '').replace(/ዎ/g, 'ወ').replace(/\s+/g, ' ').trim();
+
+  const STANDARD_ROLE_OPTIONS = [
+    'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII',
+    'መካከለኛ የኔትወርክ ባለሙያ ደረጃ XII',
+    'ረዳት የኔትወርክ ባለሙያ ደረጃ XI',
+    'ጀማሪ የኔትወርክ ባለሙያ ደረጃ X',
+    'ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII',
+    'መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII',
+    'ረዳት የዳታቤዝ ባለሙያ ደረጃ XI',
+    'ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X',
+    'ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII',
+    'መካከለኛ የሲስተም ባለሙያ ደረጃ XII',
+    'ረዳት የሲስተም ባለሙያ ደረጃ XI',
+    'ጀማሪ የሲስተም ባለሙያ ደረጃ X'
+  ];
+
+  const resolveTitleDropdownValue = (currentTitle: string) => {
+    if (isCustomRole) return '__custom_role__';
+    if (!currentTitle) return '';
+    const norm = normalizeTitle(currentTitle);
+    const matched = STANDARD_ROLE_OPTIONS.find((opt) => normalizeTitle(opt) === norm);
+    if (matched) return matched;
+    return currentTitle;
+  };
+
   // Reset or Populate on initialData changes
   useEffect(() => {
     if (initialData) {
@@ -224,8 +255,19 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
       setTechnicalSkillsText(initialData.requirements?.technicalSkills?.join(', ') || '');
       setKpis(initialData.keyPerformanceIndicators || []);
       setSelectedRoleOption(initialData.title);
+      setIsCustomRole(false);
+    } else {
+      setTitle('');
+      setTitleEn('');
+      setDepartment('የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን');
+      setLevel('ደረጃ XIII (Grade XIII)');
+      setReportsTo('የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን ኃላፊ');
+      setJobObjective('');
+      setSelectedRoleOption('');
+      setIsCustomRole(false);
+      setAutoAdjustNotice(null);
     }
-  }, [initialData]);
+  }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
@@ -246,41 +288,65 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
   const handleSelectOfficialRole = (roleTitle: string) => {
     setSelectedRoleOption(roleTitle);
 
+    if (!roleTitle) {
+      setTitle('');
+      setTitleEn('');
+      setAutoAdjustNotice(null);
+      return;
+    }
+
     if (roleTitle === '__custom_role__') {
       setIsCustomRole(true);
+      setTitle('');
+      setTitleEn('');
+      setAutoAdjustNotice(null);
       return;
     }
 
     setIsCustomRole(false);
+    // Always set the selected title immediately so the dropdown stays selected
+    setTitle(roleTitle);
+
+    const norm = normalizeTitle(roleTitle);
 
     // 1. Check in DEFAULT_JOB_DESCRIPTIONS first for full pre-configured JD
-    const foundJd = DEFAULT_JOB_DESCRIPTIONS.find((j) => j.title.trim() === roleTitle.trim());
+    const foundJd = DEFAULT_JOB_DESCRIPTIONS.find(
+      (j) => normalizeTitle(j.title) === norm
+    );
     // 2. Check in OFFICIAL_STAFF_POSITIONS
-    const foundPos = OFFICIAL_STAFF_POSITIONS.find((p) => p.titleAm.trim() === roleTitle.trim());
+    const foundPos = OFFICIAL_STAFF_POSITIONS.find(
+      (p) => normalizeTitle(p.titleAm) === norm
+    );
 
     if (foundJd) {
-      setTitle(foundJd.title);
       setTitleEn(foundJd.titleEn);
       setLevel(foundJd.level);
       setReportsTo(foundJd.reportsTo);
       setJobObjective(foundJd.jobObjective);
       setDuties(foundJd.duties);
       setEvaluationTable(foundJd.evaluationTable);
-      setEducation(foundJd.requirements.education);
-      setExperience(foundJd.requirements.experience);
-      setCertificationsText(foundJd.requirements.certifications?.join(', ') || '');
-      setTechnicalSkillsText(foundJd.requirements.technicalSkills?.join(', ') || '');
+      if (foundJd.requirements) {
+        setEducation(foundJd.requirements.education || '');
+        setExperience(foundJd.requirements.experience || '');
+        setCertificationsText(foundJd.requirements.certifications?.join(', ') || '');
+        setTechnicalSkillsText(foundJd.requirements.technicalSkills?.join(', ') || '');
+      }
       setKpis(foundJd.keyPerformanceIndicators || []);
 
       setAutoAdjustNotice(
         lang === 'am'
-          ? `✨ ለ"${foundJd.title}" ይፋዊ የሥራ ዝርዝር (100%)፣ የምዘና ሰንጠረዥ (60%) እና መስፈርቶች በራስ-ሰር ተስተካክለው ተሞልተዋል!`
-          : `✨ Official duties (100%), evaluation table (60%), and requirements loaded for "${foundJd.title}"!`
+          ? `✨ ለ"${roleTitle}" ይፋዊ የሥራ ዝርዝር (100%)፣ የምዘና ሰንጠረዥ (60%) እና መስፈርቶች በራስ-ሰር ተስተካክለው ተሞልተዋል!`
+          : `✨ Official duties (100%), evaluation table (60%), and requirements loaded for "${roleTitle}"!`
       );
     } else if (foundPos) {
-      setTitle(foundPos.titleAm);
       setTitleEn(foundPos.titleEn);
-      setLevel(`${foundPos.grade} (${foundPos.grade.replace('ደረጃ', 'Grade')})`);
+      const gradeToLevel: Record<string, string> = {
+        'ደረጃ XIII': 'ደረጃ XIII (Grade XIII)',
+        'ደረጃ XII': 'ደረጃ XII (Grade XII)',
+        'ደረጃ XI': 'ደረጃ XI (Grade XI)',
+        'ደረጃ X': 'ደረጃ X (Grade X)'
+      };
+      setLevel(gradeToLevel[foundPos.grade] || foundPos.grade);
       setReportsTo(foundPos.reportsToAm);
       setJobObjective(foundPos.jobObjectiveAm);
 
@@ -295,9 +361,11 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
 
       setAutoAdjustNotice(
         lang === 'am'
-          ? `✨ ለ"${foundPos.titleAm}" ይፋዊ መረጃዎችና የምዘና ሰንጠረዥ በራስ-ሰር ተስተካክለው ተሞልተዋል!`
-          : `✨ Official job details & matrix loaded for "${foundPos.titleAm}"!`
+          ? `✨ ለ"${roleTitle}" ይፋዊ መረጃዎችና የምዘና ሰንጠረዥ በራስ-ሰር ተስተካክለው ተሞልተዋል!`
+          : `✨ Official job details & matrix loaded for "${roleTitle}"!`
       );
+    } else {
+      setAutoAdjustNotice(null);
     }
   };
 
@@ -569,14 +637,13 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
                 </div>
               )}
 
-              {/* Department & Official Role Dropdowns */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                {/* 1. Department Dropdown */}
+              {/* Department Dropdown */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
                     <span>{lang === 'am' ? 'የስራ ክፍል (Department) *' : 'Department *'}</span>
                     <span className="text-[10px] text-blue-600 font-normal">
-                      {lang === 'am' ? 'የተዘጋጁ ክፍሎችና ሌሎች' : 'Pre-configured & others'}
+                      {lang === 'am' ? 'የተዘጋጁ ክፍሎችና ዲቪዥኖች' : 'Pre-configured divisions'}
                     </span>
                   </label>
                   {!isCustomDept ? (
@@ -585,7 +652,7 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
                       onChange={(e) => handleDepartmentChange(e.target.value)}
                       className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
                     >
-                      <optgroup label="🏢 ዋና ዋና የኢንፎርሜሽን ቴክኖሎጂ የስራ ክፍሎች (IT Departments)">
+                      <optgroup label="🏢 ይፋዊ ዲቪዥኖችና የቴክኖሎጂ ክፍሎች (IT Divisions & Departments)">
                         {CORE_IT_DEPARTMENTS.map((deptName) => (
                           <option key={deptName} value={deptName}>
                             {deptName}
@@ -630,103 +697,121 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
                     </div>
                   )}
                 </div>
-
-                {/* 2. Official Role / Position Dropdown based on Department */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
-                    <span>{lang === 'am' ? 'መደብ (ይፋዊ የሥራ መደብ) *' : 'Official Job Position *'}</span>
-                    <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                      {lang === 'am' ? 'በራስ-ሰር የሚያስተካክል' : 'Auto-adjusts all'}
-                    </span>
-                  </label>
-
-                  <select
-                    value={isCustomRole ? '__custom_role__' : selectedRoleOption}
-                    onChange={(e) => handleSelectOfficialRole(e.target.value)}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium text-slate-900"
-                  >
-                    <option value="">-- ይፋዊ የስራ መደብ ይምረጡ --</option>
-                    
-                    {/* If current department is Network */}
-                    {isNetworkDept && (
-                      <optgroup label="🌐 የኔትዎርክ አስተዳደር ይፋዊ መደቦች">
-                        {OFFICIAL_NETWORK_ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-
-                    {/* If current department is Database */}
-                    {isDatabaseDept && (
-                      <optgroup label="💾 የዳታቤዝ አስተዳደር ይፋዊ መደቦች">
-                        {OFFICIAL_DATABASE_ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-
-                    {/* If current department is System */}
-                    {isSystemDept && (
-                      <optgroup label="🖥️ የሲስተም አስተዳደር ይፋዊ መደቦች">
-                        {OFFICIAL_SYSTEM_ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-
-                    {/* If other department, list all 12 positions categorized */}
-                    {!isNetworkDept && !isDatabaseDept && !isSystemDept && (
-                      <>
-                        <optgroup label="🌐 የኔትዎርክ አስተዳደር መደቦች">
-                          {OFFICIAL_NETWORK_ROLES.map((r) => (
-                            <option key={r} value={r}>{r}</option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="💾 የዳታቤዝ አስተዳደር መደቦች">
-                          {OFFICIAL_DATABASE_ROLES.map((r) => (
-                            <option key={r} value={r}>{r}</option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="🖥️ የሲስተም አስተዳደር መደቦች">
-                          {OFFICIAL_SYSTEM_ROLES.map((r) => (
-                            <option key={r} value={r}>{r}</option>
-                          ))}
-                        </optgroup>
-                      </>
-                    )}
-
-                    <option value="__custom_role__">
-                      {lang === 'am' ? '+ ሌላ አዲስ የስራ መደብ ጻፍ (Custom Role)...' : '+ Write Custom Job Title...'}
-                    </option>
-                  </select>
-                </div>
               </div>
 
               {/* Title Inputs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* 1. Job Title Amharic - Categorized Dropdown matching user screenshot */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    {lang === 'am' ? 'የስራ መደቡ መጠሪያ (በአማርኛ) *' : 'Job Title (Amharic) *'}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      if (isCustomRole) setCustomRoleTitle(e.target.value);
-                    }}
-                    placeholder="ምሳሌ፡ ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII"
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      {lang === 'am' ? 'የስራ መደቡ መጠሪያ (በአማርኛ) *' : 'Job Title (Amharic) *'}
+                    </label>
+                    {isCustomRole ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomRole(false);
+                          handleSelectOfficialRole('ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII');
+                        }}
+                        className="text-[10px] text-blue-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        {lang === 'am' ? 'ከይፋዊ ዝርዝር ምረጥ' : 'Select from Official List'}
+                      </button>
+                    ) : (
+                      title && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTitle('');
+                            setTitleEn('');
+                            setSelectedRoleOption('');
+                          }}
+                          className="text-[10px] text-rose-600 hover:underline font-semibold cursor-pointer"
+                        >
+                          {lang === 'am' ? 'አስወግድ' : 'Clear'}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  {!isCustomRole ? (
+                    <select
+                      value={resolveTitleDropdownValue(title)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '__custom_role__') {
+                          setIsCustomRole(true);
+                          setTitle('');
+                          return;
+                        }
+                        if (!val) {
+                          setTitle('');
+                          setTitleEn('');
+                          setSelectedRoleOption('');
+                          return;
+                        }
+                        handleSelectOfficialRole(val);
+                      }}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium text-slate-900 cursor-pointer"
+                    >
+                      <option value="">-- የስራ መደብ የለም / አስወግድ --</option>
+                      <optgroup label="🌐 የኔትዎርክ አስተዳደር (Network Administration)">
+                        <option value="ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII">ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII</option>
+                        <option value="መካከለኛ የኔትወርክ ባለሙያ ደረጃ XII">መካከለኛ የኔትወርክ ባለሙያ ደረጃ XII</option>
+                        <option value="ረዳት የኔትወርክ ባለሙያ ደረጃ XI">ረዳት የኔትወርክ ባለሙያ ደረጃ XI</option>
+                        <option value="ጀማሪ የኔትወርክ ባለሙያ ደረጃ X">ጀማሪ የኔትወርክ ባለሙያ ደረጃ X</option>
+                      </optgroup>
+                      <optgroup label="💾 የዳታቤዝ አስተዳደር (Database Administration)">
+                        <option value="ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII">ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII</option>
+                        <option value="መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII">መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII</option>
+                        <option value="ረዳት የዳታቤዝ ባለሙያ ደረጃ XI">ረዳት የዳታቤዝ ባለሙያ ደረጃ XI</option>
+                        <option value="ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X">ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X</option>
+                      </optgroup>
+                      <optgroup label="🖥️ የሲስተም አስተዳደር (System Administration)">
+                        <option value="ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII">ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII</option>
+                        <option value="መካከለኛ የሲስተም ባለሙያ ደረጃ XII">መካከለኛ የሲስተም ባለሙያ ደረጃ XII</option>
+                        <option value="ረዳት የሲስተም ባለሙያ ደረጃ XI">ረዳት የሲስተም ባለሙያ ደረጃ XI</option>
+                        <option value="ጀማሪ የሲስተም ባለሙያ ደረጃ X">ጀማሪ የሲስተም ባለሙያ ደረጃ X</option>
+                      </optgroup>
+                      {title &&
+                        !STANDARD_ROLE_OPTIONS.some(
+                          (opt) => normalizeTitle(opt) === normalizeTitle(title)
+                        ) && (
+                          <optgroup label="ሌላ / የተለየ የስራ መደብ">
+                            <option value={title}>{title}</option>
+                          </optgroup>
+                        )}
+                      <option value="__custom_role__">
+                        {lang === 'am' ? '+ ሌላ አዲስ የስራ መደብ ጻፍ (Custom Role)...' : '+ Write Custom Job Title...'}
+                      </option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={title}
+                        onChange={(e) => {
+                          setTitle(e.target.value);
+                          setCustomRoleTitle(e.target.value);
+                        }}
+                        placeholder="ምሳሌ፡ ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII"
+                        className="w-full text-xs p-2.5 rounded-xl border border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomRole(false)}
+                        className="px-3 py-1 text-xs font-semibold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-xl transition cursor-pointer shrink-0"
+                      >
+                        {lang === 'am' ? 'ዝርዝር' : 'List'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
+                {/* 2. Job Title English */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     {lang === 'am' ? 'የስራ መደቡ መጠሪያ (በእንግሊዝኛ)' : 'Job Title (English)'}

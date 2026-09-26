@@ -75,8 +75,8 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
     gender: 'ወንድ',
     directorateAm: 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት',
     directorateEn: 'Institutional Technology Administration Directorate',
-    teamAm: 'የኔትወርክና መሰረተ ልማት ቡድን',
-    teamEn: 'Network & Infrastructure Team',
+    teamAm: 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን',
+    teamEn: 'Database, Network & System Admin Division',
     positionAm: '',
     positionEn: '',
     jobLevel: 'ደረጃ XIII (Grade XIII)',
@@ -96,8 +96,6 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
   };
 
   const [formData, setFormData] = useState<Omit<Employee, 'id'>>(initialFormData);
-  const [certsInput, setCertsInput] = useState('');
-  const [skillsInput, setSkillsInput] = useState('');
 
   // Extract unique teams
   const teamsList = useMemo(() => {
@@ -137,8 +135,6 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
   const handleOpenAdd = () => {
     setEditingEmployee(null);
     setFormData(initialFormData);
-    setCertsInput('');
-    setSkillsInput('');
     setIsFormOpen(true);
   };
 
@@ -171,37 +167,29 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
       notes: emp.notes || '',
       linkedJobId: emp.linkedJobId || 'jd-001'
     });
-    setCertsInput(emp.certifications ? emp.certifications.join(', ') : '');
-    setSkillsInput(emp.skills ? emp.skills.join(', ') : '');
     setIsFormOpen(true);
   };
 
   // Submit Form
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
-    const certArray = certsInput
-      .split(',')
-      .map((c) => c.trim())
-      .filter((c) => c.length > 0);
-    const skillArray = skillsInput
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
 
     if (editingEmployee) {
       const updated: Employee = {
         ...editingEmployee,
         ...formData,
-        certifications: certArray,
-        skills: skillArray
+        certifications: editingEmployee.certifications || [],
+        skills: editingEmployee.skills || [],
+        notes: editingEmployee.notes || ''
       };
       onUpdateEmployee(updated);
     } else {
       const newEmp: Employee = {
         id: `emp-${Date.now()}`,
         ...formData,
-        certifications: certArray,
-        skills: skillArray
+        certifications: [],
+        skills: [],
+        notes: ''
       };
       onAddEmployee(newEmp);
     }
@@ -721,22 +709,47 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                   />
                 </div>
 
-                {/* Quick Official Role & Grade Selector */}
-                <div className="col-span-1 md:col-span-2 bg-blue-50/50 p-2.5 rounded-xl border border-blue-100">
-                  <label className="block text-xs font-bold text-blue-900 mb-1 flex items-center justify-between">
-                    <span>ይፋዊ የስራ መደብና ደረጃ ይምረጡ (Select Official Position & Grade)</span>
-                    <span className="text-[10px] font-normal text-blue-600 bg-white px-2 py-0.5 rounded border border-blue-200">12 ይፋዊ የሙያ መደቦች</span>
-                  </label>
+                {/* Position Amharic (Categorized Official Positions) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      የሥራ መደብ መጠሪያ (በአማርኛ)
+                    </label>
+                    {formData.positionAm && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            positionAm: '',
+                            positionEn: '',
+                            linkedJobId: undefined
+                          })
+                        }
+                        className="text-[10px] text-rose-600 hover:text-rose-700 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                        title="የስራ መደቡን አስወግድ"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>የስራ መደብ አስወግድ</span>
+                      </button>
+                    )}
+                  </div>
                   <select
-                    value={
-                      OFFICIAL_STAFF_POSITIONS.some((p) => p.titleAm === formData.positionAm)
-                        ? formData.positionAm
-                        : ''
-                    }
+                    value={formData.positionAm}
                     onChange={(e) => {
                       const sel = e.target.value;
-                      if (!sel) return;
-                      const found = OFFICIAL_STAFF_POSITIONS.find((p) => p.titleAm === sel);
+                      if (!sel) {
+                        setFormData({ 
+                          ...formData, 
+                          positionAm: '', 
+                          positionEn: '',
+                          linkedJobId: undefined 
+                        });
+                        return;
+                      }
+                      const found = OFFICIAL_STAFF_POSITIONS.find(
+                        (p) => p.titleAm === sel || p.titleAm.replace(/ዎ/g, 'ወ') === sel.replace(/ዎ/g, 'ወ')
+                      );
                       if (found) {
                         const gradeToLevel: Record<string, string> = {
                           'ደረጃ XIII': 'ደረጃ XIII (Grade XIII)',
@@ -746,22 +759,23 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                         };
                         setFormData({
                           ...formData,
-                          positionAm: found.titleAm,
+                          positionAm: sel,
                           positionEn: found.titleEn,
                           jobLevel: gradeToLevel[found.grade] || found.grade,
-                          teamAm: found.category === 'network' ? 'የኔትወርክ አስተዳደር የስራ ክፍል' :
-                                  found.category === 'database' ? 'የዳታቤዝ አስተዳደር የስራ ክፍል' :
-                                  'የሲስተም አስተዳደር የስራ ክፍል',
+                          teamAm: 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን',
+                          teamEn: 'Database, Network & System Admin Division',
                           linkedJobId: found.id
                         });
+                      } else {
+                        setFormData({ ...formData, positionAm: sel });
                       }
                     }}
-                    className="w-full px-3 py-1.5 text-xs font-semibold border border-blue-200 bg-white text-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="">-- ይፋዊ የስራ መደብና ደረጃ ይምረጡ (አውቶማቲክ ሙሌት) --</option>
+                    <option value="">-- የስራ መደብ የለም / አስወግድ --</option>
                     <optgroup label="🌐 የኔትዎርክ አስተዳደር (Network Administration)">
                       <option value="ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII">ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII</option>
-                      <option value="መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII">መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII</option>
+                      <option value="መካከለኛ የኔትወርክ ባለሙያ ደረጃ XII">መካከለኛ የኔትወርክ ባለሙያ ደረጃ XII</option>
                       <option value="ረዳት የኔትወርክ ባለሙያ ደረጃ XI">ረዳት የኔትወርክ ባለሙያ ደረጃ XI</option>
                       <option value="ጀማሪ የኔትወርክ ባለሙያ ደረጃ X">ጀማሪ የኔትወርክ ባለሙያ ደረጃ X</option>
                     </optgroup>
@@ -777,22 +791,13 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                       <option value="ረዳት የሲስተም ባለሙያ ደረጃ XI">ረዳት የሲስተም ባለሙያ ደረጃ XI</option>
                       <option value="ጀማሪ የሲስተም ባለሙያ ደረጃ X">ጀማሪ የሲስተም ባለሙያ ደረጃ X</option>
                     </optgroup>
+                    {formData.positionAm &&
+                      !['ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII', 'መካከለኛ የኔትወርክ ባለሙያ ደረጃ XII', 'መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII', 'ረዳት የኔትወርክ ባለሙያ ደረጃ XI', 'ጀማሪ የኔትወርክ ባለሙያ ደረጃ X', 'ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII', 'መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII', 'ረዳት የዳታቤዝ ባለሙያ ደረጃ XI', 'ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X', 'ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII', 'መካከለኛ የሲስተም ባለሙያ ደረጃ XII', 'ረዳት የሲስተም ባለሙያ ደረጃ XI', 'ጀማሪ የሲስተም ባለሙያ ደረጃ X'].includes(formData.positionAm) && (
+                        <optgroup label="ሌላ / የተለየ የስራ መደብ">
+                          <option value={formData.positionAm}>{formData.positionAm}</option>
+                        </optgroup>
+                      )}
                   </select>
-                </div>
-
-                {/* Position Amharic */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    የሥራ መደብ መጠሪያ (በአማርኛ) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.positionAm}
-                    onChange={(e) => setFormData({ ...formData, positionAm: e.target.value })}
-                    placeholder="ምሳሌ፦ ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII"
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
                 </div>
 
                 {/* Position English */}
@@ -809,21 +814,39 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                   />
                 </div>
 
-                {/* Team / Unit */}
+                {/* Team / Unit / Division */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     የተመደበበት ቡድን / ክፍል
                   </label>
                   <select
                     value={formData.teamAm}
-                    onChange={(e) => setFormData({ ...formData, teamAm: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const enMap: Record<string, string> = {
+                        'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን': 'Database, Network & System Admin Division',
+                        'የቅርጫፍ_ኢንፎ_ቴክ_ድጋፍ_አስር ዲቪዥን': 'Branch IT Support Admin Division',
+                        'የኢንፎ_ቴክ_ድጋፍ_አገልግሎት_አስር ዲቪዥን': 'IT Support Services Admin Division'
+                      };
+                      setFormData({
+                        ...formData,
+                        teamAm: val,
+                        teamEn: enMap[val] || formData.teamEn
+                      });
+                    }}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="የኔትወርክና መሰረተ ልማት ቡድን">የኔትወርክና መሰረተ ልማት ቡድን</option>
-                    <option value="የሲስተም እና ዳታ ሴንተር ቡድን">የሲስተም እና ዳታ ሴንተር ቡድን</option>
-                    <option value="የኢንፎርሜሽን ደህንነት ቡድን">የኢንፎርሜሽን ደህንነት ቡድን</option>
-                    <option value="የቴክኒክ ድጋፍ እና አገልግሎት አሰጣጥ ቡድን">የቴክኒክ ድጋፍ እና አገልግሎት አሰጣጥ ቡድን</option>
-                    <option value="የሶፍትዌር እና ሲስተም አልሚ ቡድን">የሶፍትዌር እና ሲስተም አልሚ ቡድን</option>
+                    <option value="የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን">የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን</option>
+                    <option value="የቅርጫፍ_ኢንፎ_ቴክ_ድጋፍ_አስር ዲቪዥን">የቅርጫፍ_ኢንፎ_ቴክ_ድጋፍ_አስር ዲቪዥን</option>
+                    <option value="የኢንፎ_ቴክ_ድጋፍ_አገልግሎት_አስር ዲቪዥን">የኢንፎ_ቴክ_ድጋፍ_አገልግሎት_አስር ዲቪዥን</option>
+                    {formData.teamAm &&
+                      ![
+                        'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን',
+                        'የቅርጫፍ_ኢንፎ_ቴክ_ድጋፍ_አስር ዲቪዥን',
+                        'የኢንፎ_ቴክ_ድጋፍ_አገልግሎት_አስር ዲቪዥን'
+                      ].includes(formData.teamAm) && (
+                        <option value={formData.teamAm}>{formData.teamAm}</option>
+                      )}
                   </select>
                 </div>
 
@@ -842,21 +865,6 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                     <option value="ደረጃ XII (Grade XII)">ደረጃ XII (Grade XII)</option>
                     <option value="ደረጃ XI (Grade XI)">ደረጃ XI (Grade XI)</option>
                     <option value="ደረጃ X (Grade X)">ደረጃ X (Grade X)</option>
-                  </select>
-                </div>
-
-                {/* Employment Type */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    የቅጥር ሁኔታ (Employment Type)
-                  </label>
-                  <select
-                    value={formData.employmentType}
-                    onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as EmploymentType })}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="ቋሚ">ቋሚ (Permanent)</option>
-                    <option value="ኮንትራት">ኮንትራት (Contract)</option>
                   </select>
                 </div>
 
@@ -940,48 +948,6 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                   value={formData.educationAm}
                   onChange={(e) => setFormData({ ...formData, educationAm: e.target.value })}
                   placeholder="ምሳሌ፦ በኮምፒውተር ምህንድስና የማስተርስ ዲግሪ (MSc)"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Certifications (Comma separated) */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  አለምአቀፍ ሰርተፊኬቶች (በኮማ ይለዩ)
-                </label>
-                <input
-                  type="text"
-                  value={certsInput}
-                  onChange={(e) => setCertsInput(e.target.value)}
-                  placeholder="CCNP Enterprise, Fortinet NSE 4, ITIL v4"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Technical Skills (Comma separated) */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  ዋና ዋና የሙያ ክህሎቶች (በኮማ ይለዩ)
-                </label>
-                <input
-                  type="text"
-                  value={skillsInput}
-                  onChange={(e) => setSkillsInput(e.target.value)}
-                  placeholder="Cisco Nexus, Firewall HA, SD-WAN, BGP"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  ተጨማሪ ማስታወሻ
-                </label>
-                <textarea
-                  rows={2}
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="የተለየ ፕሮጀክት ወይም ተቋማዊ ኃላፊነት ካለ..."
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>

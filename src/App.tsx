@@ -118,7 +118,28 @@ export default function App() {
       const stored = localStorage.getItem(EMPLOYEES_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const oldTeamNames = [
+            'የኔትወርክ አስተዳደር የስራ ክፍል',
+            'የዳታቤዝ አስተዳደር የስራ ክፍል',
+            'የሲስተም አስተዳደር የስራ ክፍል',
+            'የኔትወርክና መሰረተ ልማት ቡድን',
+            'የሲስተም እና ዳታ ሴንተር ቡድን',
+            'የኢንፎርሜሽን ደህንነት ቡድን',
+            'የቴክኒክ ድጋፍ እና አገልግሎት አሰጣጥ ቡድን',
+            'የሶፍትዌር እና ሲስተም አልሚ ቡድን'
+          ];
+          return parsed.map((emp: Employee) => {
+            if (oldTeamNames.includes(emp.teamAm)) {
+              return {
+                ...emp,
+                teamAm: 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን',
+                teamEn: 'Database, Network & System Admin Division'
+              };
+            }
+            return emp;
+          });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -324,7 +345,7 @@ export default function App() {
       }
     } else if (currentModule === 'jobs') {
       const jd = jobDescriptions[0];
-      if (jd && window.confirm(lang === 'am' ? `"${jd.title}" የስራ መደብ መግለጫ ይሰረዝ?` : `Delete job description "${jd.title}"?`)) {
+      if (jd) {
         handleDeleteJobDescription(jd.id);
       }
     } else if (currentModule === 'employees') {
@@ -411,6 +432,12 @@ export default function App() {
 
   const handleDeleteJobDescription = (id: string) => {
     setJobDescriptions((prev) => prev.filter((j) => j.id !== id));
+    setIsSavedToast(true);
+    setTimeout(() => setIsSavedToast(false), 2000);
+  };
+
+  const handleRestoreDefaultJobDescriptions = () => {
+    setJobDescriptions(DEFAULT_JOB_DESCRIPTIONS);
     setIsSavedToast(true);
     setTimeout(() => setIsSavedToast(false), 2000);
   };
@@ -604,6 +631,7 @@ export default function App() {
             onAddJobDescription={handleAddJobDescription}
             onUpdateJobDescription={handleUpdateJobDescription}
             onDeleteJobDescription={handleDeleteJobDescription}
+            onRestoreDefaultJobDescriptions={handleRestoreDefaultJobDescriptions}
             lang={lang}
           />
         )}
