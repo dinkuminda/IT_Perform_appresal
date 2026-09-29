@@ -97,7 +97,7 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
     supervisorName: 'ምንዳዬ ሀይሌ (የቡድን መሪ)',
     skills: [],
     notes: '',
-    linkedJobId: 'jd-001'
+    linkedJobId: 'jd-network-xiii'
   };
 
   const [formData, setFormData] = useState<Omit<Employee, 'id'>>(initialFormData);
@@ -199,7 +199,7 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
       supervisorName: emp.supervisorName,
       skills: emp.skills,
       notes: emp.notes || '',
-      linkedJobId: emp.linkedJobId || 'jd-001'
+      linkedJobId: emp.linkedJobId || 'jd-network-xiii'
     });
     setIsFormOpen(true);
   };
@@ -803,6 +803,13 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                           'ደረጃ XI': 'ደረጃ XI (Grade XI)',
                           'ደረጃ X': 'ደረጃ X (Grade X)'
                         };
+                        const mappedJdId = found.id
+                          .replace('pos-net-', 'jd-network-')
+                          .replace('pos-db-', 'jd-database-')
+                          .replace('pos-sys-', 'jd-system-');
+                        const matchingJd = jobDescriptions.find(
+                          (jd) => jd.title === sel || jd.id === mappedJdId
+                        );
                         setFormData({
                           ...formData,
                           positionAm: sel,
@@ -810,7 +817,7 @@ export const EmployeeModuleView: React.FC<EmployeeModuleViewProps> = ({
                           jobLevel: gradeToLevel[found.grade] || found.grade,
                           teamAm: 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን',
                           teamEn: 'Database, Network & System Admin Division',
-                          linkedJobId: found.id
+                          linkedJobId: matchingJd ? matchingJd.id : mappedJdId
                         });
                       } else {
                         setFormData({ ...formData, positionAm: sel });

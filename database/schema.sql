@@ -4,9 +4,14 @@
 -- UTF-8 Support for Amharic (ኢትዮጵያ) & English
 -- =============================================================================
 
--- 1. Enable Required Extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- 1. Enable Required Extensions (Safely ignore if permissions are restricted)
+DO $$ 
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Extensions could not be loaded (non-superuser); continuing.';
+END $$;
 
 -- 2. Trigger Function for Automatic updated_at Timestamps
 CREATE OR REPLACE FUNCTION set_updated_at()
@@ -267,5 +272,104 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- =============================================================================
--- SCHEMA SETUP COMPLETED SUCCESSFULLY
+-- 12. SEED DATA - ALL 12 OFFICIAL JOB DESCRIPTIONS
+-- =============================================================================
+INSERT INTO job_descriptions (id, title, title_en, level, department, reports_to, job_objective, duties, evaluation_table, requirements, key_performance_indicators)
+VALUES
+  -- Network Administration (4 Positions)
+  ('jd-network-xiii', 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII', 'Senior Network Specialist Grade XIII', 'ደረጃ XIII (Grade XIII)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የኔትዎርክ አስተዳደር', 'የኔትወርክ አስተዳደር ቡድን መሪ', 'የተቋሙን ዋና መ/ቤት፣ ቅርንጫፎች፣ ኤርፖርቶች እና ኬላዎች የሚያገናኘውን ሰፊ የኔትወርክ መሰረተ ልማት ማቀድ፣ ማዋቀር፣ ማስተዳደር።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/MSc in Computer Engineering", "experience": "6+ years"}'::jsonb, '["Network Uptime >= 99.8%", "Failover < 30s"]'::jsonb),
+  ('jd-network-xii', 'መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII', 'Intermediate Network Specialist Grade XII', 'ደረጃ XII (Grade XII)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የኔትዎርክ አስተዳደር', 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII', 'የተቋሙን ኔትወርክ በ24/7 ሞኒተሪንግ ሲስተሞች መከታተል፣ የትራፊክ መጨናነቆችን መፍታት፣ የፋየርዎል ህጎችን ማስተዳደር።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc in Computer Science/IT", "experience": "4+ years"}'::jsonb, '["Alerts resolved < 15 min"]'::jsonb),
+  ('jd-network-xi', 'ረዳት የኔትዎርክ ባለሙያ ደረጃ XI', 'Assistant Network Specialist Grade XI', 'ደረጃ XI (Grade XI)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የኔትዎርክ አስተዳደር', 'መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII', 'የኔትወርክ ኬብሊንግ፣ የመቀያየሪያ ወደቦች (Switch Ports) ፍተሻ፣ የኔትወርክ መሳሪያዎች ቅድመ-ብልሽት ጥገና ማከናወን።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/Diploma in IT", "experience": "2+ years"}'::jsonb, '["Ports checked 100%"]'::jsonb),
+  ('jd-network-x', 'ጀማሪ የኔትዎርክ ባለሙያ ደረጃ X', 'Junior Network Specialist Grade X', 'ደረጃ X (Grade X)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የኔትዎርክ አስተዳደር', 'ረዳት የኔትዎርክ ባለሙያ ደረጃ XI', 'የኔትወርክ ኬብሎች ዝርጋታ፣ መሰረታዊ የኮምፒውተር ግንኙነት ፍተሻ እና የተጠቃሚዎች ጥያቄዎችን መመዝገብ።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/Diploma in IT", "experience": "0-1 years"}'::jsonb, '["Ticket logging 100%"]'::jsonb),
+  
+  -- Database Administration (4 Positions)
+  ('jd-database-xiii', 'ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII', 'Senior Database Specialist Grade XIII', 'ደረጃ XIII (Grade XIII)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የዳታቤዝ አስተዳደር', 'የዳታቤዝ አስተዳደር ቡድን መሪ', 'የተቋሙን የፓስፖርት፣ የዜግነትና የሲቪል ምዝገባ ኮር ዳታቤዞች አርክቴክቸር፣ High Availability፣ የመረጃ ደህንነት፣ ባክአፕ እና አፈጻጸም ማስተዳደር።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/MSc in Computer Science", "experience": "6+ years"}'::jsonb, '["Database Uptime >= 99.9%", "RPO < 15 min"]'::jsonb),
+  ('jd-db-xiii', 'ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII', 'Senior Database Specialist Grade XIII', 'ደረጃ XIII (Grade XIII)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የዳታቤዝ አስተዳደር', 'የዳታቤዝ አስተዳደር ቡድን መሪ', 'የተቋሙን የፓስፖርት፣ የዜግነትና የሲቪል ምዝገባ ኮር ዳታቤዞች አርክቴክቸር ማስተዳደር።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/MSc in Computer Science", "experience": "6+ years"}'::jsonb, '["Database Uptime >= 99.9%"]'::jsonb),
+  ('jd-database-xii', 'መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII', 'Intermediate Database Specialist Grade XII', 'ደረጃ XII (Grade XII)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የዳታቤዝ አስተዳደር', 'ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII', 'ዕለታዊ የዳታቤዝ ክትትል፣ የውሂብ ማዛወር (ETL)፣ የመረጃ ቅጂዎች (Backups) እና የተጠቃሚዎች ፈቃድ ማስተዳደር።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc in Computer Science/IT", "experience": "4+ years"}'::jsonb, '["Backup success 100%"]'::jsonb),
+  ('jd-database-xi', 'ረዳት የዳታቤዝ ባለሙያ ደረጃ XI', 'Assistant Database Specialist Grade XI', 'ደረጃ XI (Grade XI)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የዳታቤዝ አስተዳደር', 'መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII', 'የዳታቤዝ ሰንጠረዦች መጠይቆች፣ የዲስክ ቦታ ክትትል እና የዳታ ቅጂዎች ትክክለኛነት ማረጋገጥ።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/Diploma in IT", "experience": "2+ years"}'::jsonb, '["Disk check daily"]'::jsonb),
+  ('jd-database-x', 'ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X', 'Junior Database Specialist Grade X', 'ደረጃ X (Grade X)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የዳታቤዝ አስተዳደር', 'ረዳት የዳታቤዝ ባለሙያ ደረጃ XI', 'የዳታቤዝ ሁነታ ሎጎች ምዝገባ፣ የመሰረታዊ ዳታ መጠይቆች ድጋፍ እና የሙከራ ዳታቤዞች ጭነት።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/Diploma in IT", "experience": "0-1 years"}'::jsonb, '["Log review 100%"]'::jsonb),
+
+  -- System Administration (4 Positions)
+  ('jd-system-xiii', 'ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII', 'Senior System Specialist Grade XIII', 'ደረጃ XIII (Grade XIII)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የሲስተም አስተዳደር', 'የሲስተም አስተዳደር ቡድን መሪ', 'የዳታ ሴንተር ሰርቨሮች፣ ቨርቹዋል ፕላትፎርሞች፣ SAN/NAS ስቶሬጅ እና የሲስተም ደህንነት አርክቴክቸር ማስተዳደር።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/MSc in Computer Science/IT", "experience": "6+ years"}'::jsonb, '["Server Uptime >= 99.8%"]'::jsonb),
+  ('jd-sys-xiii', 'ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII', 'Senior System Specialist Grade XIII', 'ደረጃ XIII (Grade XIII)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የሲስተም አስተዳደር', 'የሲስተም አስተዳደር ቡድን መሪ', 'የዳታ ሴንተር ሰርቨሮች፣ ቨርቹዋል ፕላትፎርሞች እና የሲስተም ደህንነት አርክቴክቸር ማስተዳደር።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/MSc in IT", "experience": "6+ years"}'::jsonb, '["Server Uptime >= 99.8%"]'::jsonb),
+  ('jd-system-xii', 'መካከለኛ የሲስተም ባለሙያ ደረጃ XII', 'Intermediate System Specialist Grade XII', 'ደረጃ XII (Grade XII)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የሲስተም አስተዳደር', 'ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII', 'የሰርቨሮችና ቨርቹዋል ማሽኖች ክትትል፣ የኦፕሬቲንግ ሲስተም ዝመናዎች (Patching) እና የመተግበሪያዎች ዝርጋታ።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc in IT", "experience": "4+ years"}'::jsonb, '["Patching SLA >= 98%"]'::jsonb),
+  ('jd-system-xi', 'ረዳት የሲስተም ባለሙያ ደረጃ XI', 'Assistant System Specialist Grade XI', 'ደረጃ XI (Grade XI)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የሲስተም አስተዳደር', 'መካከለኛ የሲስተም ባለሙያ ደረጃ XII', 'የሰርቨር ኦፕሬቲንግ ሲስተሞች ጭነት፣ የተጠቃሚዎች መለያዎች አያያዝ እና የሃርድዌር ፍተሻ።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/Diploma in IT", "experience": "2+ years"}'::jsonb, '["Hardware audit 100%"]'::jsonb),
+  ('jd-system-x', 'ጀማሪ የሲስተም ባለሙያ ደረጃ X', 'Junior System Specialist Grade X', 'ደረጃ X (Grade X)', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት / የሲስተም አስተዳደር', 'ረዳት የሲስተም ባለሙያ ደረጃ XI', 'የሲስተም ሎጎች ምዝገባ፣ የመሰረታዊ ሶፍትዌር ጭነቶች እና የኢንቬንተሪ ዝርዝር አያያዝ።', '[]'::jsonb, '[]'::jsonb, '{"education": "BSc/Diploma in IT", "experience": "0-1 years"}'::jsonb, '["Inventory 100%"]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  title_en = EXCLUDED.title_en,
+  job_objective = EXCLUDED.job_objective;
+
+-- =============================================================================
+-- 13. SEED DATA - EMPLOYEES DIRECTORY (12 Civil Service Staff)
+-- =============================================================================
+INSERT INTO employees (
+  id, employee_id, full_name_am, full_name_en, gender, directorate_am, directorate_en,
+  team_am, team_en, position_am, position_en, job_level, employment_type, hire_date,
+  phone, email, office_location, status, education_am, education_en, supervisor_name, linked_job_id
+) VALUES
+  -- Network Team
+  ('emp-net-001', 'ICS-NET-0842', 'ሊዲያ ግሩም ገብረስላሴ', 'Lydia Girum Gebresilassie', 'ሴት', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII', 'Senior Network Specialist Grade XIII', 'ደረጃ XIII (Grade XIII)', 'ቋሚ', '2019-10-12', '+251 91 123 4567', 'lydia.girum@ics.gov.et', 'ዋናው ህንፃ ቢሮ ቁጥር 304', 'active', 'በኮምፒውተር ምህንድስና የማስተርስ ዲግሪ (MSc)', 'MSc in Computer Engineering', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', 'jd-network-xiii'),
+  ('emp-net-002', 'ICS-NET-0914', 'ሄኖክ ተስፋዬ በቀለ', 'Henok Tesfaye Bekele', 'ወንድ', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'መካከለኛ የኔትዎርክ ባለሙያ ደረጃ XII', 'Intermediate Network Specialist Grade XII', 'ደረጃ XII (Grade XII)', 'ቋሚ', '2020-03-15', '+251 91 234 5678', 'henok.tesfaye@ics.gov.et', 'ዋናው ህንፃ ቢሮ ቁጥር 304', 'active', 'በኮምፒውተር ሳይንስ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Computer Science', 'ሊዲያ ግሩም (ከፍተኛ ባለሙያ)', 'jd-network-xii'),
+  ('emp-net-003', 'ICS-NET-1102', 'ማርታ ኃይሉ ካሳ', 'Marta Hailu Kassa', 'ሴት', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ረዳት የኔትዎርክ ባለሙያ ደረጃ XI', 'Assistant Network Specialist Grade XI', 'ደረጃ XI (Grade XI)', 'ቋሚ', '2022-01-10', '+251 91 345 6789', 'marta.hailu@ics.gov.et', 'ዋናው ህንፃ ቢሮ ቁጥር 305', 'active', 'በኢንፎርሜሽን ቴክኖሎጂ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Information Technology', 'ሄኖክ ተስፋዬ (መካከለኛ ባለሙያ)', 'jd-network-xi'),
+  ('emp-net-004', 'ICS-NET-1240', 'በረከት አስፋው ዘውዴ', 'Bereket Asfaw Zewde', 'ወንድ', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ጀማሪ የኔትዎርክ ባለሙያ ደረጃ X', 'Junior Network Specialist Grade X', 'ደረጃ X (Grade X)', 'ቋሚ', '2023-08-01', '+251 91 456 7891', 'bereket.asfaw@ics.gov.et', 'ዋናው ህንፃ ቢሮ ቁጥር 305', 'active', 'በኢንፎርሜሽን ሳይንስ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Information Science', 'ማርታ ኃይሉ (ረዳት ባለሙያ)', 'jd-network-x'),
+
+  -- Database Team
+  ('emp-db-001', 'ICS-DB-0654', 'ዳዊት አበራ ወርቁ', 'Dawit Abera Worku', 'ወንድ', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII', 'Senior Database Specialist Grade XIII', 'ደረጃ XIII (Grade XIII)', 'ቋሚ', '2017-09-04', '+251 91 456 7890', 'dawit.abera@ics.gov.et', 'ዳታ ሴንተር ህንፃ ቢሮ ቁጥር 105', 'active', 'በኮምፒውተር ሳይንስ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Computer Science', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', 'jd-database-xiii'),
+  ('emp-db-002', 'ICS-DB-0881', 'ሰላማዊት ደረጀ ሞገስ', 'Selamawit Dereje Moges', 'ሴት', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'መካከለኛ የዳታቤዝ ባለሙያ ደረጃ XII', 'Intermediate Database Specialist Grade XII', 'ደረጃ XII (Grade XII)', 'ቋሚ', '2019-11-20', '+251 91 567 8901', 'selamawit.dereje@ics.gov.et', 'ዳታ ሴንተር ህንፃ ቢሮ ቁጥር 105', 'active', 'በዳታቤዝ ሲስተምስ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Database Systems', 'ዳዊት አበራ (ከፍተኛ ባለሙያ)', 'jd-database-xii'),
+  ('emp-db-003', 'ICS-DB-1055', 'ናትናኤል ግርማ በቀለ', 'Natnael Girma Bekele', 'ወንድ', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ረዳት የዳታቤዝ ባለሙያ ደረጃ XI', 'Assistant Database Specialist Grade XI', 'ደረጃ XI (Grade XI)', 'ቋሚ', '2021-06-15', '+251 91 678 9012', 'natnael.girma@ics.gov.et', 'ዳታ ሴንተር ህንፃ ቢሮ ቁጥር 106', 'active', 'በኮምፒውተር ሳይንስ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Computer Science', 'ሰላማዊት ደረጀ (መካከለኛ ባለሙያ)', 'jd-database-xi'),
+  ('emp-db-004', 'ICS-DB-1209', 'ራሔል ክፍሌ ወልደማሪያም', 'Rahel Kifle Woldemariam', 'ሴት', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ጀማሪ የዳታቤዝ ባለሙያ ደረጃ X', 'Junior Database Specialist Grade X', 'ደረጃ X (Grade X)', 'ቋሚ', '2023-04-10', '+251 91 789 0123', 'rahel.kifle@ics.gov.et', 'ዳታ ሴንተር ህንፃ ቢሮ ቁጥር 106', 'active', 'በኢንፎርሜሽን ሲስተምስ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Information Systems', 'ናትናኤል ግርማ (ረዳት ባለሙያ)', 'jd-database-x'),
+
+  -- System Team
+  ('emp-sys-001', 'ICS-SYS-0711', 'ዮናስ ታደሰ አያሌው', 'Yonas Tadesse Ayalew', 'ወንድ', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII', 'Senior System Specialist Grade XIII', 'ደረጃ XIII (Grade XIII)', 'ቋሚ', '2018-02-18', '+251 91 321 0987', 'yonas.tadesse@ics.gov.et', 'ዋናው ህንፃ ቢሮ ቁጥር 306', 'active', 'በኢንፎርሜሽን ቴክኖሎጂ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Information Technology', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', 'jd-system-xiii'),
+  ('emp-sys-002', 'ICS-SYS-0932', 'መሰረት አለሙ ገብሬ', 'Meseret Alemu Gebre', 'ሴት', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'መካከለኛ የሲስተም ባለሙያ ደረጃ XII', 'Intermediate System Specialist Grade XII', 'ደረጃ XII (Grade XII)', 'ቋሚ', '2020-07-22', '+251 91 890 1234', 'meseret.alemu@ics.gov.et', 'ዋናው ህንፃ ቢሮ ቁጥር 306', 'active', 'በኮምፒውተር ምህንድስና የመጀመሪያ ዲግሪ (BSc)', 'BSc in Computer Engineering', 'ዮናስ ታደሰ (ከፍተኛ ባለሙያ)', 'jd-system-xii'),
+  ('emp-sys-003', 'ICS-SYS-1144', 'አማኑኤል ጥላሁን ደስታ', 'Amanuel Tilahun Desta', 'ወንድ', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ረዳት የሲስተም ባለሙያ ደረጃ XI', 'Assistant System Specialist Grade XI', 'ደረጃ XI (Grade XI)', 'ቋሚ', '2022-03-30', '+251 91 901 2345', 'amanuel.tilahun@ics.gov.et', 'ዋናው ህንፃ ቢሮ ቁጥር 307', 'active', 'በኢንፎርሜሽን ቴክኖሎጂ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Information Technology', 'መሰረት አለሙ (መካከለኛ ባለሙያ)', 'jd-system-xi'),
+  ('emp-sys-004', 'ICS-SYS-1265', 'ትዕግስት ታከለ ንጉሴ', 'Tigist Takele Nigussie', 'ሴት', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'Institutional Technology Administration Directorate', 'የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን', 'Database, Network & System Admin Division', 'ጀማሪ የሲስተም ባለሙያ ደረጃ X', 'Junior System Specialist Grade X', 'ደረጃ X (Grade X)', 'ቋሚ', '2023-11-05', '+251 91 012 3456', 'tigist.takele@ics.gov.et', 'ዋናው ህንፃ ቢሮ ቁጥር 307', 'active', 'በኮምፒውተር ሳይንስ የመጀመሪያ ዲግሪ (BSc)', 'BSc in Computer Science', 'አማኑኤል ጥላሁን (ረዳት ባለሙያ)', 'jd-system-x')
+ON CONFLICT (id) DO UPDATE SET
+  full_name_am = EXCLUDED.full_name_am,
+  phone = EXCLUDED.phone,
+  email = EXCLUDED.email,
+  linked_job_id = EXCLUDED.linked_job_id;
+
+-- =============================================================================
+-- 14. SEED DATA - PERFORMANCE APPRAISALS (Referencing Employees)
+-- =============================================================================
+INSERT INTO appraisal_records (
+  id, employee_id, emp_name, emp_code, emp_dept, emp_position, eval_period,
+  supervisor_name, eval_date, eval_type, task_score_60, competency_score_40,
+  total_score_100, performance_grade, supervisor_comments, employee_comments,
+  supervisor_signed, employee_signed, approval_status
+) VALUES
+  ('appraisal-lydia-2018', 'emp-net-001', 'ሊዲያ ግሩም ገብረስላሴ', 'ICS-NET-0842', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII', 'የ2018 ዓ.ም የመጀመሪያ ግማሽ ዓመት', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', '2026-06-30', 'half-year', 58.20, 37.40, 95.60, 'እጅግ የላቀ (Very High)', 'የተሰጡትን የኔትወርክ ስራዎች በከፍተኛ ጥራትና ፍጥነት አከናውኗል።', 'በምዘናው እስማማለሁ።', true, true, 'approved'),
+  ('appraisal-dawit-2018', 'emp-db-001', 'ዳዊት አበራ ወርቁ', 'ICS-DB-0654', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII', 'የ2018 ዓ.ም የመጀመሪያ ግማሽ ዓመት', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', '2026-06-30', 'half-year', 57.00, 38.00, 95.00, 'እጅግ የላቀ (Very High)', 'የዳታቤዝ ደህንነትና ባክአፕ ስራዎች በከፍተኛ ጥራት ተከናውነዋል።', 'በምዘናው እስማማለሁ።', true, true, 'approved'),
+  ('appraisal-yonas-2018', 'emp-sys-001', 'ዮናስ ታደሰ አያሌው', 'ICS-SYS-0711', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII', 'የ2018 ዓ.ም የመጀመሪያ ግማሽ ዓመት', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', '2026-06-30', 'half-year', 56.40, 36.80, 93.20, 'ከፍተኛ (High)', 'የዳታ ሴንተር ሰርቨሮች ያለማቋረጥ አገልግሎት እንዲሰጡ ተደርጓል።', 'በምዘናው እስማማለሁ።', true, true, 'approved')
+ON CONFLICT (id) DO UPDATE SET
+  emp_name = EXCLUDED.emp_name,
+  task_score_60 = EXCLUDED.task_score_60,
+  competency_score_40 = EXCLUDED.competency_score_40,
+  total_score_100 = EXCLUDED.total_score_100;
+
+-- =============================================================================
+-- 15. SEED DATA - MONTHLY PERFORMANCE REPORTS (Referencing Employees)
+-- =============================================================================
+INSERT INTO monthly_reports (
+  id, employee_id, employee_name, position, department, supervisor_name,
+  year, month, report_date, tasks, supervisor_rating, supervisor_signed, employee_signed, status
+) VALUES
+  ('mr-sample-01', 'emp-net-001', 'ሊዲያ ግሩም ገብረስላሴ', 'ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', 2018, 'መስከረም', '2024-10-05', '[]'::jsonb, 5, true, true, 'approved'),
+  ('mr-sample-02', 'emp-db-001', 'ዳዊት አበራ ወርቁ', 'ከፍተኛ የዳታቤዝ ባለሙያ ደረጃ XIII', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', 2018, 'መስከረም', '2024-10-05', '[]'::jsonb, 5, true, true, 'approved'),
+  ('mr-sample-03', 'emp-sys-001', 'ዮናስ ታደሰ አያሌው', 'ከፍተኛ የሲስተም ባለሙያ ደረጃ XIII', 'የተቋማዊ ቴክኖሎጂ አስተዳደር ዳይሬክቶሬት', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', 2018, 'መስከረም', '2024-10-05', '[]'::jsonb, 4, true, true, 'approved')
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- 16. SEED DATA - AUDIT LOGS (System History)
+-- =============================================================================
+INSERT INTO audit_logs (entity_type, entity_id, action, actor_name, actor_role, changes, ip_address)
+VALUES
+  ('system', 'sys-init', 'SCHEMA_INITIALIZATION', 'System Administrator', 'admin', '{"status": "Database schema created and all 7 tables verified"}'::jsonb, '127.0.0.1'),
+  ('departments', 'dept-div-dns', 'RECORD_CREATED', 'System Setup', 'admin', '{"name": "የዳታቤዝ፣ ኔትዎርክና ሲስተም አስር ዲቪዥን"}'::jsonb, '127.0.0.1'),
+  ('employees', 'emp-net-001', 'RECORD_VERIFIED', 'ምንዳዬ ሀይሌ (ዳይሬክተር)', 'supervisor', '{"status": "active", "position": "ከፍተኛ የኔትወርክ ባለሙያ ደረጃ XIII"}'::jsonb, '192.168.1.15');
+
+-- =============================================================================
+-- SCHEMA SETUP & INSERTS FOR ALL TABLES COMPLETED SUCCESSFULLY
 -- =============================================================================

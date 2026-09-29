@@ -386,12 +386,16 @@ export default function App() {
 
   const handleAddEmployee = (newEmp: Employee) => {
     setEmployees((prev) => [newEmp, ...prev]);
+    setIsSavedToast(true);
+    setTimeout(() => setIsSavedToast(false), 2000);
   };
 
   const handleUpdateEmployee = (updatedEmp: Employee) => {
     setEmployees((prev) =>
       prev.map((e) => (e.id === updatedEmp.id ? updatedEmp : e))
     );
+    setIsSavedToast(true);
+    setTimeout(() => setIsSavedToast(false), 2000);
   };
 
   const handleDeleteEmployee = (id: string) => {
@@ -797,6 +801,10 @@ export default function App() {
         isOpen={isDatabaseModalOpen}
         onClose={() => setIsDatabaseModalOpen(false)}
         lang={lang}
+        employees={employees}
+        jobDescriptions={jobDescriptions}
+        appraisals={savedRecords}
+        monthlyReports={monthlyReports}
       />
     </div>
   );
