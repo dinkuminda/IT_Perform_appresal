@@ -7,13 +7,15 @@ import * as schema from './schema';
 // - Desktop Local Postgres: postgresql://postgres:password@localhost:5432/appraisal_db
 const connectionString = 
   process.env.POSTGRES_URL || 
-  process.env.DATABASE_URL || 
-  'postgresql://postgres:postgres@localhost:5432/appraisal_db';
+  process.env.DATABASE_URL;
 
 let pool: Pool | undefined;
 let db: any;
 
 try {
+  if (!connectionString) {
+    throw new Error('No database connection string provided');
+  }
   pool = new Pool({
     connectionString,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
